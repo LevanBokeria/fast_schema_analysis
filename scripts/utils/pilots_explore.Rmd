@@ -1,0 +1,52 @@
+---
+title: "pilots_explore"
+output: bookdown::html_document2
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE)
+```
+
+```{r load-all-libraries, message=FALSE, warning=FALSE, results=FALSE}
+
+# Clean the environment
+rm(list=ls())
+
+# Load libraries
+library(tidyverse)
+library(rstatix)
+library(DT)
+library(kableExtra)
+# library(rjson)
+library(readr)
+library(writexl)
+library(jsonlite)
+```
+
+```{r read-json-file}
+
+filename <- '../../data/pilots/gui_downloads/jatos_results_20210527124112.txt'
+
+my_data <- read_file(filename)
+
+# Find the data submission module
+start_loc <- str_locate(my_data, 'data_submission_start---')[2]
+end_loc   <- str_locate(my_data, '---data_submission_end]')[1]
+
+json_content <- substr(my_data,start_loc+1,end_loc-1)
+
+json_decoded <- fromJSON(json_content)
+
+session_results <- json_decoded$outputData$session_results
+
+```
+
+```{r plot-results-by-session}
+
+session_results <- session_results %>%
+        mutate()
+
+
+
+```
+
