@@ -37,15 +37,61 @@ json_content <- substr(my_data,start_loc+1,end_loc-1)
 
 json_decoded <- fromJSON(json_content)
 
-session_results <- json_decoded$outputData$session_results
+session_results <- as_tibble(json_decoded$outputData$session_results)
 
 ```
 
-```{r plot-results-by-session}
+```{r create-new-columns}
 
+# All the mutations
 session_results <- session_results %>%
-        mutate()
+        mutate(session_global = as.factor(
+                case_when(
+                stage == 'new_pa_learning' ~ 4,
+                TRUE ~ as.double(session$schema_learning))),
+               session_condition = as.factor(
+                       case_when(
+                stage == 'new_pa_learning' ~ 1,
+                TRUE ~ as.double(session$schema_learning))),
+               stage = as.factor(stage),
+               correct = as.numeric(correct),
+               stimulus = as.factor(stimulus),
+               response_dist_cb = corr_row-row + corr_col-col,
+               rougly_correct = case_when(
+                       response_dist_cb < 2 ~ 1,
+                       TRUE ~ 0
+               )
+        )
 
+# For each stimulus, add a counter for the number of times it has been presented
+session_results %>%
+        group_by(stage,session_condition,stimulus) %>%
+        mutate(stim_trial_idx = row_number(stimulus)) %>% 
+        View()
+
+
+
+```
+
+
+```{r}
+
+write_xlsx(session_results,'../../sesres.xlsx')
+getwd()
+
+```
+
+
+
+
+
+```{r plots}
+
+
+session_results %>%
+        ggplot(aes(x=trial_index, y=correct, fill = stimulus)) +
+        geom_point() +
+        facet_wrap(~session_global)
 
 
 ```
