@@ -21,77 +21,185 @@ library(kableExtra)
 library(readr)
 library(writexl)
 library(jsonlite)
+library(stringr)
+library(gridExtra)
+
 ```
+
+
+```{r flags}
+
+writeInExcel <- F
+
+```
+
 
 ```{r read-json-file}
 
-filename <- '../../data/pilots/gui_downloads/jatos_results_20210527124112.txt'
+filenames <- c('jatos_results_20210527124112',
+               'jatos_results_20210607131203',
+               'jatos_results_20210607131219')
 
-my_data <- read_file(filename)
+session_results_all_ptp <- NULL
 
-# Find the data submission module
-start_loc <- str_locate(my_data, 'data_submission_start---')[2]
-end_loc   <- str_locate(my_data, '---data_submission_end]')[1]
+for (iName in filenames){
+        print(iName)
+              
+        filepath <- paste('../../data/pilots/gui_downloads/',iName,'.txt', sep='')
+        
+        my_data <- read_file(filepath)
+        
+        # Find the data submission module
+        start_loc <- str_locate(my_data, 'data_submission_start---')[2]
+        end_loc   <- str_locate(my_data, '---data_submission_end]')[1]
+        
+        json_content <- substr(my_data,start_loc+1,end_loc-1)
+        
+        json_decoded <- fromJSON(json_content)
+        
+        session_results <- as_tibble(json_decoded$outputData$session_results)
+        
+        # All the mutations
+        session_results <- session_results %>%
+                mutate(session_global = as.factor(
+                        case_when(stage == 'new_pa_learning' ~ 4,TRUE ~
+                                          as.double(session$schema_learning))),
+                       session_condition = as.factor(
+                               case_when(
+                                       stage == 'new_pa_learning' ~ 1,
+                                       TRUE ~ as.double(session$schema_learning))),
+                       stage = as.factor(stage),
+                       correct = as.numeric(correct),
+                       stimulus = as.factor(stimulus),
+                       response_dist_cb = corr_row-row + corr_col-col,
+                       rougly_correct = case_when(
+                               abs(response_dist_cb) < 2 ~ 1,
+                               TRUE ~ 0
+                       )
+                )
+        
+        session_results <- session_results %>%
+                mutate(ptp = json_decoded$prolific_ID, .before = rt)
+        
+        session_results_all_ptp <- bind_rows(session_results_all_ptp,session_results)
+        
+        # For each stimulus, add a counter for the number of times it has been presented
+        # session_results %>%
+        #         group_by(stage,session_condition,stimulus) %>%
+        #         mutate(stim_trial_idx = row_number(stimulus)) %>% 
+        #         View()
 
-json_content <- substr(my_data,start_loc+1,end_loc-1)
+}
+```
 
-json_decoded <- fromJSON(json_content)
 
-session_results <- as_tibble(json_decoded$outputData$session_results)
+```{r plots}
+# 
+# nOldPA <- session_results %>%
+#         filter(stage == 'schema_learning') %>%
+#         select(stimulus) %>%
+#         unique() %>%
+#         nrow()
+# nNewPA <- session_results %>%
+#         filter(stage == 'new_pa_learning') %>%
+#         select(stimulus) %>%
+#         unique() %>%
+#         nrow()
+
+session_results_all_ptp %>%
+        # filter(stage == 'schema_learning) %>%
+        reorder_levels(ptp, order = c('48652','zibzab','notmyname')) %>%
+        pivot_longer(c('correct','rougly_correct'),
+                     names_to = 'accuracy_type',
+                     values_to = 'accuracy') %>%
+        mutate(accuracy = coalesce(accuracy,0)) %>%
+        group_by(ptp,session_global,stimulus,accuracy_type) %>%
+        summarize(avg_corr = mean(accuracy, na.rm = T)) %>%
+        ggplot(aes(x=accuracy_type,y=avg_corr, col = stimulus, group=stimulus)) +
+        geom_point(aes(col=stimulus)) + 
+        geom_line(show.legend = T) + 
+        facet_grid(ptp~session_global,labeller = label_both) + 
+        scale_x_discrete(labels = c('Exact','Rough')) + 
+        theme(legend.position = 'none')  
+        # ggtitle(paste('Participant',json_decoded$prolific_ID,
+                      # 'Old=',nOldPA,'new =', nNewPA,sep = ' '))
+        
+
+
+
 
 ```
 
-```{r create-new-columns}
+```{r heatmaps, fig.height = 14, fig.width = 13}
 
-# All the mutations
-session_results <- session_results %>%
-        mutate(session_global = as.factor(
-                case_when(
-                stage == 'new_pa_learning' ~ 4,
-                TRUE ~ as.double(session$schema_learning))),
-               session_condition = as.factor(
-                       case_when(
-                stage == 'new_pa_learning' ~ 1,
-                TRUE ~ as.double(session$schema_learning))),
-               stage = as.factor(stage),
-               correct = as.numeric(correct),
-               stimulus = as.factor(stimulus),
-               response_dist_cb = corr_row-row + corr_col-col,
-               rougly_correct = case_when(
-                       response_dist_cb < 2 ~ 1,
-                       TRUE ~ 0
-               )
-        )
-
-# For each stimulus, add a counter for the number of times it has been presented
-session_results %>%
-        group_by(stage,session_condition,stimulus) %>%
-        mutate(stim_trial_idx = row_number(stimulus)) %>% 
-        View()
+iPtp <- '48652'
 
 
+for (iPtp in unique(session_results_all_ptp$ptp)){
+        
+        print(iPtp)
+        
+        # create dataframe of locations of old PAs
+        opa_loc <- session_results_all_ptp %>%
+                separate(stimulus, c('path','stimulus_name'), 'ed/') %>% 
+                filter(ptp == iPtp & 
+                               stage == 'schema_learning') %>% 
+                group_by(ptp,stimulus_name,corr_row,corr_col) %>%
+                summarise(count = n()) %>%
+                ungroup() %>%
+                select(-c(stimulus_name,count,ptp))
+        
+        # Plot the old PA sessions
+        plot1 <- session_results_all_ptp %>%
+                        separate(stimulus, c('path','stimulus_name'), 'ed/') %>% 
+                        filter(ptp == iPtp & 
+                                       stage == 'schema_learning') %>% 
+                        ggplot(aes(col,row)) +
+                        geom_bin2d(bins=12) +
+                        facet_grid(stimulus_name ~ session_global) +
+                        theme(panel.grid.minor = element_blank()) +
+                        scale_x_continuous(breaks=seq(0,12),limits = c(0,12)) + 
+                        scale_y_continuous(breaks=seq(0,12),limits = c(0,12)) + 
+                        geom_text(data=opa_loc,aes(x=corr_col-0.5,
+                                                   y=corr_row-0.5,
+                                                   label='X',
+                                                   color='white')) + 
+                        geom_text(aes(x=corr_col-0.5,y=corr_row-0.5,label='X',
+                                      color='red')) + 
+                        ggtitle(paste('Participant: ',iPtp,' Schema Learning',sep=''))
+        
+        
+        # Plot the new PA sessions
+        plot2 <- session_results_all_ptp %>%
+                        separate(stimulus, c('path','stimulus_name'), 'ed/') %>% 
+                        filter(ptp == iPtp & 
+                                       stage == 'new_pa_learning') %>% 
+                        ggplot(aes(col,row)) +
+                        geom_bin2d(bins=12) +
+                        # annotate(geom='text',x=corr_row,y=corr_col, label='X', color='red') +
+                        facet_grid(stimulus_name ~ session_global) +
+                        theme(panel.grid.minor = element_blank()) +
+                        scale_x_continuous(breaks=seq(0,12),limits = c(0,12)) + 
+                        scale_y_continuous(breaks=seq(0,12),limits = c(0,12)) + 
+                        geom_text(aes(x=corr_col-0.5,y=corr_row-0.5,label='X',
+                                      color='red')) + 
+                        geom_text(data=opa_loc,aes(x=corr_col-0.5,
+                                                   y=corr_row-0.5,
+                                                   label='X',
+                                                   color='white')) + 
+                        ggtitle(paste('Participant: ',iPtp,' New PA Learning',sep=''))
+        
+        grid.arrange(plot1,plot2,ncol=2,widths=c(5,2))
 
+}
 ```
 
 
 ```{r}
 
-write_xlsx(session_results,'../../sesres.xlsx')
-getwd()
-
-```
-
-
-
-
-
-```{r plots}
-
-
-session_results %>%
-        ggplot(aes(x=trial_index, y=correct, fill = stimulus)) +
-        geom_point() +
-        facet_wrap(~session_global)
+if (writeInExcel){
+        write_xlsx(session_results,paste('../../',filename,'.xlsx',sep=''))        
+}
 
 
 ```
