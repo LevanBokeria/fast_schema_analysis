@@ -45,7 +45,7 @@ session_results_all_ptp <- NULL
 for (iName in filenames){
         # print(iName)
               
-        filepath <- paste('../../data/pilots/gui_downloads/',iName,'.txt', sep='')
+        filepath <- paste('../data/pilots/gui_downloads/',iName,'.txt', sep='')
         
         my_data <- read_file(filepath)
         
