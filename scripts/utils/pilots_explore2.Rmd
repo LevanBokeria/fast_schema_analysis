@@ -1,0 +1,250 @@
+---
+title: "pilots_explore2"
+output: bookdown::html_document2
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE)
+```
+
+```{r load-all-libraries, message=FALSE, warning=FALSE, results=FALSE}
+
+# Clean the environment
+rm(list=ls())
+
+# Load libraries
+library(tidyverse)
+library(rstatix)
+library(DT)
+library(kableExtra)
+# library(rjson)
+library(readr)
+library(writexl)
+library(jsonlite)
+library(stringr)
+library(gridExtra)
+
+```
+
+
+```{r flags}
+
+writeInExcel <- F
+
+```
+
+
+```{r read-json-file}
+
+filenames <- c('jatos_results_20210620174618',
+               'jatos_results_20210620174558',
+               'jatos_results_20210620174455')
+
+session_results_all_ptp <- NULL
+
+for (iName in filenames){
+        # print(iName)
+              
+        filepath <- paste('../../data/pilots/gui_downloads/',iName,'.txt', sep='')
+        
+        my_data <- read_file(filepath)
+        
+        # Find the data submission module
+        start_loc <- str_locate(my_data, 'data_submission_start---')[2]
+        end_loc   <- str_locate(my_data, '---data_submission_end]')[1]
+        
+        json_content <- substr(my_data,start_loc+1,end_loc-1)
+        
+        json_decoded <- fromJSON(json_content)
+        
+        session_results <- as_tibble(json_decoded$outputData$session_results)
+        
+        # All the mutations
+        session_results <- session_results %>%
+                mutate(session_global = as.factor(
+                        case_when(stage == 'new_pa_learning' ~ 4,
+                                  TRUE ~ as.double(session$schema_learning))),
+                       session_condition = as.factor(
+                               case_when(stage == 'new_pa_learning' ~ 1,
+                                       TRUE ~ as.double(session$schema_learning))),
+                       stage = as.factor(stage),
+                       condition = as.factor(condition),
+                       correct = as.numeric(correct),
+                       stimulus = as.factor(stimulus),
+                       rc_dist_cb = corr_row-row + corr_col-col,
+                       rc_dist_euclid = sqrt(
+                               (corr_row-row)^2 + (corr_col-col)^2
+                               ),
+                       mouse_dist_cb = abs(mouse_clientX - pa_center_x) +
+                               abs(mouse_clientY - pa_center_y),
+                       mouse_dist_euclid = sqrt((mouse_clientX - pa_center_x)^2 +
+                               (mouse_clientY - pa_center_y)^2),
+                       roughly_correct = case_when(
+                               abs(rc_dist_euclid) < 2 ~ 1,
+                               TRUE ~ 0
+                       )
+                )
+        
+        session_results <- session_results %>%
+                mutate(ptp = json_decoded$prolific_ID, .before = rt,
+                       ptp = as.factor(ptp))
+        
+        session_results_all_ptp <- bind_rows(session_results_all_ptp,session_results)
+
+}
+```
+
+# Description:
+
+
+
+# Exact vs rough accuracy:
+
+```{r plots, message=FALSE, fig.width=10}
+
+
+# Exact and rough accuracy across sessions
+session_results_all_ptp %>%
+        # reorder_levels(ptp, order = c('48652','zibzab','notmyname')) %>%
+        filter(!stage == 'practice') %>%
+        pivot_longer(c('correct','roughly_correct'),
+                     names_to = 'accuracy_type',
+                     values_to = 'accuracy') %>% 
+        mutate(accuracy = coalesce(accuracy,0)) %>%
+        group_by(ptp,condition,session_global,stimulus,accuracy_type) %>%
+        summarize(avg_corr = mean(accuracy, na.rm = T)) %>%
+        ggplot(aes(x=session_global,y=avg_corr, col=stimulus, group=stimulus)) +
+        geom_point(aes(col=stimulus)) + 
+        geom_line(show.legend = T) + 
+        facet_grid(ptp ~ accuracy_type + condition,labeller = label_both) +
+        # scale_x_discrete(labels = c('Exact','Rough')) + 
+        theme(legend.position = 'none') +
+        ggtitle('Session 4 is new PA. Each row is a participant')
+
+# Rough vs exact accuracy
+# session_results_all_ptp %>%
+#         filter(!stage == 'practice') %>%
+#         # reorder_levels(ptp, order = c('48652','zibzab','notmyname')) %>%
+#         pivot_longer(c('correct','roughly_correct'),
+#                      names_to = 'accuracy_type',
+#                      values_to = 'accuracy') %>%
+#         mutate(accuracy = coalesce(accuracy,0)) %>%
+#         group_by(ptp,condition,session_global,stimulus,accuracy_type) %>%
+#         summarize(avg_corr = mean(accuracy, na.rm = T)) %>%
+#         ggplot(aes(x=accuracy_type,y=avg_corr, col = stimulus, group=stimulus)) +
+#         geom_point(aes(col=stimulus)) + 
+#         geom_line(show.legend = T) + 
+#         facet_grid(ptp ~ condition + session_global,labeller = label_both) + 
+#         scale_x_discrete(labels = c('Exact','Rough')) + 
+#         theme(legend.position = 'none') + 
+#         ggtitle('Session 4 is new PA. Each row is a participant')
+
+
+
+```
+
+# Heatmaps:
+
+One figure for each participant.
+Within each figure, the left panel is schema learning, the right panel is new PA learning. 
+
+Each row is a separate PA stimulus.
+
+red X marks the location of the target PA. Cyan Xs mark locations of other PAs.
+
+Conclusions:
+
+For schema learning, I think all the participants show good rough knowledge by session 3. The participant "notmyname" struggles with a few stimuli because there were 8 of them.
+
+For new PA learning, I tried looking at whether performance depended on being close to an old PA or not, but with just 3 participants its hard to say.
+
+```{r heatmaps, results='asis', fig.height = 14, fig.width = 13, warning=FALSE, message=FALSE}
+
+iPtp <- 48652
+
+for (iPtp in unique(session_results_all_ptp$ptp)){
+        
+        # print(iPtp)
+        
+        # create dataframe of locations of old PAs
+        opa_loc <- session_results_all_ptp %>%
+                separate(stimulus, c('path','stimulus_name'), 'ed/') %>% 
+                filter(ptp == iPtp & 
+                               stage == 'schema_learning') %>% 
+                group_by(ptp,stimulus_name,corr_row,corr_col) %>%
+                summarise(count = n()) %>%
+                ungroup() %>%
+                select(-c(stimulus_name,count,ptp))
+        
+        # Plot the old PA sessions
+        plot1 <- session_results_all_ptp %>%
+                        separate(stimulus, c('path','stimulus_name'), 'ed/') %>% 
+                        filter(ptp == iPtp & 
+                                       stage == 'schema_learning') %>% 
+                        ggplot(aes(col,row)) +
+                        geom_bin2d(bins=12) +
+                        facet_grid(stimulus_name ~ session_global) +
+                        theme(panel.grid.minor = element_blank()) +
+                        scale_x_continuous(breaks=seq(0,12),limits = c(0,12)) + 
+                        scale_y_continuous(breaks=seq(0,12),limits = c(0,12)) + 
+                        geom_text(data=opa_loc,aes(x=corr_col-0.5,
+                                                   y=corr_row-0.5,
+                                                   label='X',
+                                                   color='white')) + 
+                        geom_text(aes(x=corr_col-0.5,y=corr_row-0.5,label='X',
+                                      color='red')) + 
+                        ggtitle(paste('Participant: ',iPtp,', Schema Learning',sep=''))
+        
+        
+        # Plot the new PA sessions
+        plot2 <- session_results_all_ptp %>%
+                        separate(stimulus, c('path','stimulus_name'), 'ed/') %>% 
+                        filter(ptp == iPtp & 
+                                       stage == 'new_pa_learning') %>% 
+                        ggplot(aes(col,row)) +
+                        geom_bin2d(bins=12) +
+                        # annotate(geom='text',x=corr_row,y=corr_col, label='X', color='red') +
+                        facet_grid(stimulus_name ~ session_global) +
+                        theme(panel.grid.minor = element_blank()) +
+                        scale_x_continuous(breaks=seq(0,12),limits = c(0,12)) + 
+                        scale_y_continuous(breaks=seq(0,12),limits = c(0,12)) + 
+                        geom_text(aes(x=corr_col-0.5,y=corr_row-0.5,label='X',
+                                      color='red')) + 
+                        geom_text(data=opa_loc,aes(x=corr_col-0.5,
+                                                   y=corr_row-0.5,
+                                                   label='X',
+                                                   color='white')) + 
+                        ggtitle(paste('Participant: ',iPtp,', New PA Learning',sep=''))
+        
+        grid.arrange(plot1,plot2,ncol=2,widths=c(5,2))
+
+}
+
+for (iPtp in unique(session_results_all_ptp$ptp)){
+        
+        # Give a summary table of session accuracy
+        session_results_all_ptp %>%
+                separate(stimulus, c('path','stimulus_name'), 'ed/') %>% 
+                filter(ptp == iPtp) %>% 
+                group_by(stimulus_name,session_global) %>%
+                mutate(correct=coalesce(correct,0),
+                       roughly_correct=coalesce(roughly_correct,0)) %>%
+                summarise(avg_corr=round(mean(correct),3),
+                          avg_roughly_corr=round(mean(roughly_correct),3)) %>%
+                knitr::kable(caption=paste('Participant: ',iPtp,sep='')) %>%
+                kable_styling(bootstrap_options = "striped") %>%
+                print()            
+        
+}
+```
+
+
+```{r}
+
+if (writeInExcel){
+        write_xlsx(session_results,paste('../../',filename,'.xlsx',sep=''))        
+}
+
+
+```
+
