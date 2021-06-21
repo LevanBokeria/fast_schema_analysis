@@ -40,6 +40,9 @@ filenames <- c('jatos_results_20210527124112',
                'jatos_results_20210607131203',
                'jatos_results_20210607131219')
 
+
+filenames <- 'jatos_results_20210615121546'
+
 session_results_all_ptp <- NULL
 
 for (iName in filenames){
