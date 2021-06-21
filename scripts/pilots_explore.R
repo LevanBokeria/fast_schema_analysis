@@ -61,7 +61,39 @@ for (iName in filenames){
                        roughly_correct = case_when(
                                abs(rc_dist_euclid) < 2 ~ 1,
                                TRUE ~ 0
-                       )
+                       ),
+                       correct_rad_21 = case_when(
+                               abs(mouse_dist_euclid) <= 21 ~ 1,
+                               TRUE ~ 0
+                       ),                       
+                       correct_rad_42 = case_when(
+                               abs(mouse_dist_euclid) <= 42 ~ 1,
+                               TRUE ~ 0
+                       ),                                              
+                       correct_rad_63 = case_when(
+                               abs(mouse_dist_euclid) <= 63 ~ 1,
+                               TRUE ~ 0
+                       ),
+                       correct_rad_84 = case_when(
+                               abs(mouse_dist_euclid) <= 84 ~ 1,
+                               TRUE ~ 0
+                       ),                       
+                       correct_rad_105 = case_when(
+                               abs(mouse_dist_euclid) <= 105 ~ 1,
+                               TRUE ~ 0
+                       ),   
+                       correct_rad_126 = case_when(
+                               abs(mouse_dist_euclid) <= 126 ~ 1,
+                               TRUE ~ 0
+                       ),
+                       correct_rad_147 = case_when(
+                               abs(mouse_dist_euclid) <= 147 ~ 1,
+                               TRUE ~ 0
+                       ),
+                       correct_rad_168 = case_when(
+                               abs(mouse_dist_euclid) <= 168 ~ 1,
+                               TRUE ~ 0
+                       )                 
                 )
         
         session_results <- session_results %>%
@@ -73,7 +105,24 @@ for (iName in filenames){
 }
 
 
-# Just plot one per participant, performance across sessions, C vs IC
+# Turn to long form with accuracy types as one column
+session_results_all_ptp_gathered <- 
+        session_results_all_ptp %>%
+        pivot_longer(cols = starts_with('correct_rad'),
+                     names_to = 'accuracy_type',
+                     values_to = 'accuracy',
+                     names_prefix = "correct_")
+
+session_avg_gathered <- 
+        session_results_all_ptp_gathered %>%
+        filter(stage != 'practice') %>%
+        mutate(accuracy = coalesce(accuracy,0)) %>%
+        group_by(ptp,condition,session_global,accuracy_type) %>%
+        summarize(avg_correct = mean(accuracy, na.rm=T)) %>%
+        ungroup()
+
+
+# Exact performance across sessions, C vs IC
 stimulus_avg <-
         session_results_all_ptp %>%
         filter(stage != 'practice') %>%
@@ -96,7 +145,8 @@ ggplot(data = stimulus_avg, aes(x=session_global, y=avg_corr)) +
         facet_grid(ptp~condition, labeller=label_both) + 
         geom_line(data = session_avg, aes(group=condition),size = 1) +
         geom_point(data = session_avg, aes(group=condition)) + 
-        ylim(0,1)
+        ylim(0,1) + 
+        ggtitle('Exact accuracy')
 
 # Roughly correct now:
 stimulus_avg <-
@@ -121,47 +171,134 @@ ggplot(data = stimulus_avg, aes(x=session_global, y=avg_corr)) +
         facet_grid(ptp~condition, labeller=label_both) + 
         geom_line(data = session_avg, aes(group=condition),size = 1) +
         geom_point(data = session_avg, aes(group=condition)) + 
-        ylim(0,1)
+        ylim(0,1) + 
+        ggtitle('Rough accuracy')
         
+##############################################################################
+# Try multiple radiuses
+
+# - Consistent
+session_results_all_ptp_gathered %>%
+        filter(stage != 'practice' & 
+                       condition == 'schema_c') %>%
+        group_by(ptp,session_global,accuracy_type,stimulus) %>%
+        summarize(avg_correct = mean(accuracy)) %>%
+        reorder_levels(accuracy_type, order = c(
+                'rad_21',
+                'rad_42',
+                'rad_63',
+                'rad_84',
+                'rad_105',
+                'rad_126',
+                'rad_147',
+                'rad_168'
+        )) %>%
+        ungroup() %>% 
+        ggplot(aes(x=accuracy_type,y=avg_correct)) + 
+        geom_point(aes(group=stimulus,color=stimulus)) + 
+        geom_line(aes(group=stimulus,color=stimulus)) +
+        theme(legend.position = 'none',
+              axis.text.x = element_text(angle=-90)) + 
+        geom_point(data = filter(session_avg_gathered,condition == 'schema_c')) +         
+        geom_line(data = filter(session_avg_gathered,condition == 'schema_c'),
+                  aes(group=condition)) +                 
+        facet_grid(ptp~session_global, labeller=label_both) + 
+        ylim(0,1) + 
+        ggtitle('Consistent')
+
+# - Inconsistent
+session_results_all_ptp_gathered %>%
+        filter(stage != 'practice' & 
+                       condition == 'schema_ic') %>%
+        group_by(ptp,session_global,accuracy_type,stimulus) %>%
+        summarize(avg_correct = mean(accuracy)) %>%
+        reorder_levels(accuracy_type, order = c(
+                'rad_21',
+                'rad_42',
+                'rad_63',
+                'rad_84',
+                'rad_105',
+                'rad_126',
+                'rad_147',
+                'rad_168'
+        )) %>%
+        ungroup() %>% 
+        ggplot(aes(x=accuracy_type,y=avg_correct,group=stimulus,color=stimulus)) + 
+        geom_point() + 
+        geom_line() +
+        theme(legend.position = 'none',
+              axis.text.x = element_text(angle=-90)) + 
+        facet_grid(ptp~session_global, labeller=label_both) + 
+        ylim(0,1) + 
+        ggtitle('Inconsistent')
+
+# Session as the within line
+# - Consistent
+session_results_all_ptp_gathered %>%
+        filter(stage != 'practice' & 
+                       condition == 'schema_c') %>%
+        group_by(ptp,session_global,accuracy_type,stimulus) %>%
+        summarize(avg_correct = mean(accuracy)) %>%
+        reorder_levels(accuracy_type, order = c(
+                'rad_21',
+                'rad_42',
+                'rad_63',
+                'rad_84',
+                'rad_105',
+                'rad_126',
+                'rad_147',
+                'rad_168'
+        )) %>%
+        ungroup() %>% 
+        ggplot(aes(x=session_global,y=avg_correct,group=stimulus,color=stimulus)) + 
+        geom_point() + 
+        geom_line() +
+        theme(legend.position = 'none') + 
+        facet_grid(ptp~accuracy_type) + 
+        ylim(0,1) + 
+        ggtitle('Consistent')
+
+# - Inconsistent
+session_results_all_ptp_gathered %>%
+        filter(stage != 'practice' & 
+                       condition == 'schema_ic') %>%
+        group_by(ptp,session_global,accuracy_type,stimulus) %>%
+        summarize(avg_correct = mean(accuracy)) %>%
+        reorder_levels(accuracy_type, order = c(
+                'rad_21',
+                'rad_42',
+                'rad_63',
+                'rad_84',
+                'rad_105',
+                'rad_126',
+                'rad_147',
+                'rad_168'
+        )) %>%
+        ungroup() %>% 
+        ggplot(aes(x=session_global,y=avg_correct,group=stimulus,color=stimulus)) + 
+        geom_point() + 
+        geom_line() +
+        theme(legend.position = 'none') + 
+        facet_grid(ptp~accuracy_type) + 
+        ylim(0,1) + 
+        ggtitle('Inconsistent')
 
 
 
 
 
-# Exact vs rough accuracy:
 
-# Exact and rough accuracy across sessions
-session_results_all_ptp %>%
-        # reorder_levels(ptp, order = c('48652','zibzab','notmyname')) %>%
-        filter(!stage == 'practice') %>%
-        pivot_longer(c('correct','roughly_correct'),
-                     names_to = 'accuracy_type',
-                     values_to = 'accuracy') %>% 
-        mutate(accuracy = coalesce(accuracy,0)) %>%
-        group_by(ptp,condition,session_global,stimulus,accuracy_type) %>%
-        summarize(avg_corr = mean(accuracy, na.rm = T)) %>%
-        ggplot(aes(x=session_global,y=avg_corr, col=stimulus, group=stimulus)) +
-        geom_point(aes(col=stimulus)) + 
-        geom_line(show.legend = T) + 
-        facet_grid(ptp ~ accuracy_type + condition,labeller = label_both) +
-        # scale_x_discrete(labels = c('Exact','Rough')) + 
-        theme(legend.position = 'none') +
-        ggtitle('Session 4 is new PA. Each row is a participant')
 
-# Rough vs exact accuracy
-# session_results_all_ptp %>%
-#         filter(!stage == 'practice') %>%
-#         # reorder_levels(ptp, order = c('48652','zibzab','notmyname')) %>%
-#         pivot_longer(c('correct','roughly_correct'),
-#                      names_to = 'accuracy_type',
-#                      values_to = 'accuracy') %>%
-#         mutate(accuracy = coalesce(accuracy,0)) %>%
-#         group_by(ptp,condition,session_global,stimulus,accuracy_type) %>%
-#         summarize(avg_corr = mean(accuracy, na.rm = T)) %>%
-#         ggplot(aes(x=accuracy_type,y=avg_corr, col = stimulus, group=stimulus)) +
-#         geom_point(aes(col=stimulus)) + 
-#         geom_line(show.legend = T) + 
-#         facet_grid(ptp ~ condition + session_global,labeller = label_both) + 
-#         scale_x_discrete(labels = c('Exact','Rough')) + 
-#         theme(legend.position = 'none') + 
-#         ggtitle('Session 4 is new PA. Each row is a participant')
+
+
+
+
+
+
+
+
+
+
+
+
+
