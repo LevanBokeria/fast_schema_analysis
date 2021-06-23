@@ -101,6 +101,13 @@ for (iName in filenames){
                 mutate(ptp = json_decoded$prolific_ID, .before = rt,
                        ptp = as.factor(ptp))
         
+        # Add a row counter for each occurrence of a stimulus, 
+        # within that condition and within that session
+        session_results <- session_results %>%
+                group_by(condition,session_global,stimulus) %>%
+                mutate(stimulus_row_number = row_number()) %>%
+                ungroup()
+        
         session_results_all_ptp <- bind_rows(session_results_all_ptp,session_results)
         
 }
@@ -175,6 +182,46 @@ ggplot(data = stimulus_avg, aes(x=session_global, y=avg_corr)) +
         ylim(0,1) + 
         ggtitle('Rough accuracy')
         
+
+
+
+#############################################################################
+# Within session learning
+
+
+condition_to_plot <- 'schema_ic'
+
+# - get the average performance within session across presentation number
+trial_avg <- 
+        session_results_all_ptp %>%
+        filter(stage != 'practice' & condition == condition_to_plot) %>%
+        mutate(correct_rad_63 = coalesce(correct_rad_63,0)) %>%
+        group_by(ptp,condition,session_global,stimulus_row_number) %>%
+        summarize(correct_rad_63 = mean(correct_rad_63, na.rm = T)) %>%
+        ungroup()
+
+
+session_results_all_ptp %>%
+        filter(stage != 'practice' & condition == condition_to_plot) %>% 
+        mutate(correct_rad_63 = coalesce(correct_rad_63,0)) %>%
+        group_by(ptp,condition,session_global,stimulus) %>%
+        ggplot(aes(x=stimulus_row_number,y=correct_rad_63)) +
+        geom_point(aes(color=stimulus, group=stimulus)) + 
+        geom_line(aes(color=stimulus,group=stimulus)) + 
+
+        
+        geom_point(data = trial_avg, aes(group=condition)) + 
+        geom_line(data = trial_avg, aes(group=condition),size=1) + 
+        
+        facet_grid(ptp~session_global, labeller=label_both) + 
+        ggtitle(paste(condition_to_plot,'. Accuracy type: 63px radius',sep='')) + 
+        theme(legend.position = 'none')
+        
+        
+
+
+
+
 ##############################################################################
 # Try multiple radiuses
 
