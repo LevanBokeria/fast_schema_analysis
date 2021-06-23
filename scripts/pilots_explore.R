@@ -17,7 +17,8 @@ writeInExcel <- F
 
 filenames <- c('jatos_results_20210620174618',
                'jatos_results_20210620174558',
-               'jatos_results_20210620174455')
+               'jatos_results_20210620174455',
+               'jatos_results_20210623104448')
 
 session_results_all_ptp <- NULL
 
@@ -177,10 +178,12 @@ ggplot(data = stimulus_avg, aes(x=session_global, y=avg_corr)) +
 ##############################################################################
 # Try multiple radiuses
 
-# - Consistent
+condition_to_plot <- 'schema_ic'
+
+# - Radii as X axis
 session_results_all_ptp_gathered %>%
         filter(stage != 'practice' & 
-                       condition == 'schema_c') %>%
+                       condition == condition_to_plot) %>%
         group_by(ptp,session_global,accuracy_type,stimulus) %>%
         summarize(avg_correct = mean(accuracy)) %>%
         reorder_levels(accuracy_type, order = c(
@@ -199,44 +202,18 @@ session_results_all_ptp_gathered %>%
         geom_line(aes(group=stimulus,color=stimulus)) +
         theme(legend.position = 'none',
               axis.text.x = element_text(angle=-90)) + 
-        geom_point(data = filter(session_avg_gathered,condition == 'schema_c')) +         
-        geom_line(data = filter(session_avg_gathered,condition == 'schema_c'),
+        geom_point(data = filter(session_avg_gathered,condition == condition_to_plot)) +         
+        geom_line(data = filter(session_avg_gathered,condition == condition_to_plot),
                   aes(group=condition)) +                 
         facet_grid(ptp~session_global, labeller=label_both) + 
         ylim(0,1) + 
-        ggtitle('Consistent')
-
-# - Inconsistent
-session_results_all_ptp_gathered %>%
-        filter(stage != 'practice' & 
-                       condition == 'schema_ic') %>%
-        group_by(ptp,session_global,accuracy_type,stimulus) %>%
-        summarize(avg_correct = mean(accuracy)) %>%
-        reorder_levels(accuracy_type, order = c(
-                'rad_21',
-                'rad_42',
-                'rad_63',
-                'rad_84',
-                'rad_105',
-                'rad_126',
-                'rad_147',
-                'rad_168'
-        )) %>%
-        ungroup() %>% 
-        ggplot(aes(x=accuracy_type,y=avg_correct,group=stimulus,color=stimulus)) + 
-        geom_point() + 
-        geom_line() +
-        theme(legend.position = 'none',
-              axis.text.x = element_text(angle=-90)) + 
-        facet_grid(ptp~session_global, labeller=label_both) + 
-        ylim(0,1) + 
-        ggtitle('Inconsistent')
+        ggtitle(condition_to_plot)
 
 # Session as the within line
-# - Consistent
+
 session_results_all_ptp_gathered %>%
         filter(stage != 'practice' & 
-                       condition == 'schema_c') %>%
+                       condition == condition_to_plot) %>%
         group_by(ptp,session_global,accuracy_type,stimulus) %>%
         summarize(avg_correct = mean(accuracy)) %>%
         reorder_levels(accuracy_type, order = c(
@@ -250,41 +227,16 @@ session_results_all_ptp_gathered %>%
                 'rad_168'
         )) %>%
         ungroup() %>% 
-        ggplot(aes(x=session_global,y=avg_correct,group=stimulus,color=stimulus)) + 
-        geom_point() + 
-        geom_line() +
+        ggplot(aes(x=session_global,y=avg_correct)) + 
+        geom_point(aes(group=stimulus,color=stimulus)) + 
+        geom_line(aes(group=stimulus,color=stimulus)) +
+        geom_point(data = filter(session_avg_gathered,condition == condition_to_plot)) +
+        geom_line(data = filter(session_avg_gathered,condition == condition_to_plot),
+                  aes(group=condition)) +          
         theme(legend.position = 'none') + 
         facet_grid(ptp~accuracy_type) + 
         ylim(0,1) + 
-        ggtitle('Consistent')
-
-# - Inconsistent
-session_results_all_ptp_gathered %>%
-        filter(stage != 'practice' & 
-                       condition == 'schema_ic') %>%
-        group_by(ptp,session_global,accuracy_type,stimulus) %>%
-        summarize(avg_correct = mean(accuracy)) %>%
-        reorder_levels(accuracy_type, order = c(
-                'rad_21',
-                'rad_42',
-                'rad_63',
-                'rad_84',
-                'rad_105',
-                'rad_126',
-                'rad_147',
-                'rad_168'
-        )) %>%
-        ungroup() %>% 
-        ggplot(aes(x=session_global,y=avg_correct,group=stimulus,color=stimulus)) + 
-        geom_point() + 
-        geom_line() +
-        theme(legend.position = 'none') + 
-        facet_grid(ptp~accuracy_type) + 
-        ylim(0,1) + 
-        ggtitle('Inconsistent')
-
-
-
+        ggtitle(condition_to_plot)
 
 
 

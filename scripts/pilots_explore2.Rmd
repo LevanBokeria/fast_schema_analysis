@@ -23,6 +23,7 @@ library(writexl)
 library(jsonlite)
 library(stringr)
 library(gridExtra)
+library(knitr)
 
 ```
 
@@ -35,16 +36,16 @@ writeInExcel <- F
 
 
 ```{r read-json-file}
-
 filenames <- c('jatos_results_20210620174618',
                'jatos_results_20210620174558',
-               'jatos_results_20210620174455')
+               'jatos_results_20210620174455',
+               'jatos_results_20210623104448')
 
 session_results_all_ptp <- NULL
 
 for (iName in filenames){
         # print(iName)
-              
+        
         filepath <- paste('../data/pilots/gui_downloads/',iName,'.txt', sep='')
         
         my_data <- read_file(filepath)
@@ -66,7 +67,7 @@ for (iName in filenames){
                                   TRUE ~ as.double(session$schema_learning))),
                        session_condition = as.factor(
                                case_when(stage == 'new_pa_learning' ~ 1,
-                                       TRUE ~ as.double(session$schema_learning))),
+                                         TRUE ~ as.double(session$schema_learning))),
                        stage = as.factor(stage),
                        condition = as.factor(condition),
                        correct = as.numeric(correct),
@@ -74,15 +75,47 @@ for (iName in filenames){
                        rc_dist_cb = corr_row-row + corr_col-col,
                        rc_dist_euclid = sqrt(
                                (corr_row-row)^2 + (corr_col-col)^2
-                               ),
+                       ),
                        mouse_dist_cb = abs(mouse_clientX - pa_center_x) +
                                abs(mouse_clientY - pa_center_y),
                        mouse_dist_euclid = sqrt((mouse_clientX - pa_center_x)^2 +
-                               (mouse_clientY - pa_center_y)^2),
+                                                        (mouse_clientY - pa_center_y)^2),
                        roughly_correct = case_when(
                                abs(rc_dist_euclid) < 2 ~ 1,
                                TRUE ~ 0
-                       )
+                       ),
+                       correct_rad_21 = case_when(
+                               abs(mouse_dist_euclid) <= 21 ~ 1,
+                               TRUE ~ 0
+                       ),                       
+                       correct_rad_42 = case_when(
+                               abs(mouse_dist_euclid) <= 42 ~ 1,
+                               TRUE ~ 0
+                       ),                                              
+                       correct_rad_63 = case_when(
+                               abs(mouse_dist_euclid) <= 63 ~ 1,
+                               TRUE ~ 0
+                       ),
+                       correct_rad_84 = case_when(
+                               abs(mouse_dist_euclid) <= 84 ~ 1,
+                               TRUE ~ 0
+                       ),                       
+                       correct_rad_105 = case_when(
+                               abs(mouse_dist_euclid) <= 105 ~ 1,
+                               TRUE ~ 0
+                       ),   
+                       correct_rad_126 = case_when(
+                               abs(mouse_dist_euclid) <= 126 ~ 1,
+                               TRUE ~ 0
+                       ),
+                       correct_rad_147 = case_when(
+                               abs(mouse_dist_euclid) <= 147 ~ 1,
+                               TRUE ~ 0
+                       ),
+                       correct_rad_168 = case_when(
+                               abs(mouse_dist_euclid) <= 168 ~ 1,
+                               TRUE ~ 0
+                       )                 
                 )
         
         session_results <- session_results %>%
@@ -90,153 +123,205 @@ for (iName in filenames){
                        ptp = as.factor(ptp))
         
         session_results_all_ptp <- bind_rows(session_results_all_ptp,session_results)
-
+        
 }
+```
+
+
+```{r gather-data, message=FALSE}
+
+# Turn to long form with accuracy types as one column
+session_results_all_ptp_gathered <- 
+        session_results_all_ptp %>%
+        pivot_longer(cols = starts_with('correct_rad'),
+                     names_to = 'accuracy_type',
+                     values_to = 'accuracy',
+                     names_prefix = "correct_")
+
+session_avg_gathered <- 
+        session_results_all_ptp_gathered %>%
+        filter(stage != 'practice') %>%
+        mutate(accuracy = coalesce(accuracy,0)) %>%
+        group_by(ptp,condition,session_global,accuracy_type) %>%
+        summarize(avg_correct = mean(accuracy, na.rm=T)) %>%
+        ungroup()
+
 ```
 
 # Description:
 
+What changed: 
 
+- Added color to the board background.
+- Added patterned outline.
+- The board is smaller now 500x500 px.
+- The board is randomly positioned within a 700x700 arena.
+- The prompt picture appears separately on a screen, instead of appearing below the board. Thus, participants can't use that image and text as landmarks.
 
-# Exact vs rough accuracy:
+## Exact vs rough accuracy
 
-```{r plots, message=FALSE, fig.width=10}
+Rough accuracy is 1 city-block distance away from the correct cell.
 
+People struccle in schema-IC condition. Images change location after every session. Are we ok with performance being so low for each session? 
 
-# Exact and rough accuracy across sessions
-session_results_all_ptp %>%
-        # reorder_levels(ptp, order = c('48652','zibzab','notmyname')) %>%
-        filter(!stage == 'practice') %>%
-        pivot_longer(c('correct','roughly_correct'),
-                     names_to = 'accuracy_type',
-                     values_to = 'accuracy') %>% 
-        mutate(accuracy = coalesce(accuracy,0)) %>%
-        group_by(ptp,condition,session_global,stimulus,accuracy_type) %>%
-        summarize(avg_corr = mean(accuracy, na.rm = T)) %>%
-        ggplot(aes(x=session_global,y=avg_corr, col=stimulus, group=stimulus)) +
-        geom_point(aes(col=stimulus)) + 
-        geom_line(show.legend = T) + 
-        facet_grid(ptp ~ accuracy_type + condition,labeller = label_both) +
-        # scale_x_discrete(labels = c('Exact','Rough')) + 
-        theme(legend.position = 'none') +
-        ggtitle('Session 4 is new PA. Each row is a participant')
+No clear difference at the new-PA learning stage between schema-C and schema-IC
 
-# Rough vs exact accuracy
-# session_results_all_ptp %>%
-#         filter(!stage == 'practice') %>%
-#         # reorder_levels(ptp, order = c('48652','zibzab','notmyname')) %>%
-#         pivot_longer(c('correct','roughly_correct'),
-#                      names_to = 'accuracy_type',
-#                      values_to = 'accuracy') %>%
-#         mutate(accuracy = coalesce(accuracy,0)) %>%
-#         group_by(ptp,condition,session_global,stimulus,accuracy_type) %>%
-#         summarize(avg_corr = mean(accuracy, na.rm = T)) %>%
-#         ggplot(aes(x=accuracy_type,y=avg_corr, col = stimulus, group=stimulus)) +
-#         geom_point(aes(col=stimulus)) + 
-#         geom_line(show.legend = T) + 
-#         facet_grid(ptp ~ condition + session_global,labeller = label_both) + 
-#         scale_x_discrete(labels = c('Exact','Rough')) + 
-#         theme(legend.position = 'none') + 
-#         ggtitle('Session 4 is new PA. Each row is a participant')
-
-
-
-```
-
-# Heatmaps:
-
-One figure for each participant.
-Within each figure, the left panel is schema learning, the right panel is new PA learning. 
-
-Each row is a separate PA stimulus.
-
-red X marks the location of the target PA. Cyan Xs mark locations of other PAs.
-
-Conclusions:
-
-For schema learning, I think all the participants show good rough knowledge by session 3. The participant "notmyname" struggles with a few stimuli because there were 8 of them.
-
-For new PA learning, I tried looking at whether performance depended on being close to an old PA or not, but with just 3 participants its hard to say.
-
-```{r heatmaps, results='asis', fig.height = 14, fig.width = 13, warning=FALSE, message=FALSE}
-
-iPtp <- 48652
-
-for (iPtp in unique(session_results_all_ptp$ptp)){
-        
-        # print(iPtp)
-        
-        # create dataframe of locations of old PAs
-        opa_loc <- session_results_all_ptp %>%
-                separate(stimulus, c('path','stimulus_name'), 'ed/') %>% 
-                filter(ptp == iPtp & 
-                               stage == 'schema_learning') %>% 
-                group_by(ptp,stimulus_name,corr_row,corr_col) %>%
-                summarise(count = n()) %>%
-                ungroup() %>%
-                select(-c(stimulus_name,count,ptp))
-        
-        # Plot the old PA sessions
-        plot1 <- session_results_all_ptp %>%
-                        separate(stimulus, c('path','stimulus_name'), 'ed/') %>% 
-                        filter(ptp == iPtp & 
-                                       stage == 'schema_learning') %>% 
-                        ggplot(aes(col,row)) +
-                        geom_bin2d(bins=12) +
-                        facet_grid(stimulus_name ~ session_global) +
-                        theme(panel.grid.minor = element_blank()) +
-                        scale_x_continuous(breaks=seq(0,12),limits = c(0,12)) + 
-                        scale_y_continuous(breaks=seq(0,12),limits = c(0,12)) + 
-                        geom_text(data=opa_loc,aes(x=corr_col-0.5,
-                                                   y=corr_row-0.5,
-                                                   label='X',
-                                                   color='white')) + 
-                        geom_text(aes(x=corr_col-0.5,y=corr_row-0.5,label='X',
-                                      color='red')) + 
-                        ggtitle(paste('Participant: ',iPtp,', Schema Learning',sep=''))
-        
-        
-        # Plot the new PA sessions
-        plot2 <- session_results_all_ptp %>%
-                        separate(stimulus, c('path','stimulus_name'), 'ed/') %>% 
-                        filter(ptp == iPtp & 
-                                       stage == 'new_pa_learning') %>% 
-                        ggplot(aes(col,row)) +
-                        geom_bin2d(bins=12) +
-                        # annotate(geom='text',x=corr_row,y=corr_col, label='X', color='red') +
-                        facet_grid(stimulus_name ~ session_global) +
-                        theme(panel.grid.minor = element_blank()) +
-                        scale_x_continuous(breaks=seq(0,12),limits = c(0,12)) + 
-                        scale_y_continuous(breaks=seq(0,12),limits = c(0,12)) + 
-                        geom_text(aes(x=corr_col-0.5,y=corr_row-0.5,label='X',
-                                      color='red')) + 
-                        geom_text(data=opa_loc,aes(x=corr_col-0.5,
-                                                   y=corr_row-0.5,
-                                                   label='X',
-                                                   color='white')) + 
-                        ggtitle(paste('Participant: ',iPtp,', New PA Learning',sep=''))
-        
-        grid.arrange(plot1,plot2,ncol=2,widths=c(5,2))
-
-}
-
-for (iPtp in unique(session_results_all_ptp$ptp)){
-        
-        # Give a summary table of session accuracy
+``` {r exact-rough-accuracy, message=FALSE}
+# Exact performance across sessions, C vs IC
+stimulus_avg <-
         session_results_all_ptp %>%
-                separate(stimulus, c('path','stimulus_name'), 'ed/') %>% 
-                filter(ptp == iPtp) %>% 
-                group_by(stimulus_name,session_global) %>%
-                mutate(correct=coalesce(correct,0),
-                       roughly_correct=coalesce(roughly_correct,0)) %>%
-                summarise(avg_corr=round(mean(correct),3),
-                          avg_roughly_corr=round(mean(roughly_correct),3)) %>%
-                knitr::kable(caption=paste('Participant: ',iPtp,sep='')) %>%
-                kable_styling(bootstrap_options = "striped") %>%
-                print()            
+        filter(stage != 'practice') %>%
+        mutate(correct = coalesce(correct,0)) %>%
+        group_by(ptp,condition,session_global,stimulus) %>%
+        summarize(avg_corr = mean(correct, na.rm=T)) %>% 
+        ungroup()
+
+
+session_avg <- stimulus_avg %>%
+        group_by(ptp,condition,session_global) %>%
+        summarize(avg_corr = mean(avg_corr, na.rm=T)) %>%
+        ungroup()
+
+ggplot(data = stimulus_avg, aes(x=session_global, y=avg_corr)) +
+        geom_point(aes(color=stimulus, group=stimulus)) +
+        geom_line(aes(color=stimulus, group=stimulus)) +
+        theme(legend.position = 'none') +
+        facet_grid(ptp~condition, labeller=label_both) + 
+        geom_line(data = session_avg, aes(group=condition),size = 1) +
+        geom_point(data = session_avg, aes(group=condition)) + 
+        ylim(0,1) + 
+        ggtitle('Exact accuracy')
+
+# Roughly correct now:
+stimulus_avg <-
+        session_results_all_ptp %>%
+        filter(stage != 'practice') %>%
+        mutate(roughly_correct = coalesce(roughly_correct,0)) %>%
+        group_by(ptp,condition,session_global,stimulus) %>%
+        summarize(avg_corr = mean(roughly_correct, na.rm=T)) %>% 
+        ungroup()
+
+
+session_avg <- stimulus_avg %>%
+        group_by(ptp,condition,session_global) %>%
+        summarize(avg_corr = mean(avg_corr, na.rm=T)) %>%
+        ungroup()
+
+
+ggplot(data = stimulus_avg, aes(x=session_global, y=avg_corr)) +
+        geom_point(aes(color=stimulus, group=stimulus)) +
+        geom_line(aes(color=stimulus, group=stimulus)) +
+        theme(legend.position = 'none') +
+        facet_grid(ptp~condition, labeller=label_both) + 
+        geom_line(data = session_avg, aes(group=condition),size = 1) +
+        geom_point(data = session_avg, aes(group=condition)) + 
+        ylim(0,1) + 
+        ggtitle('Rough accuracy')
+
+```
+
+## Multiple radii
+
+I also coded accuracy as a function of radius around the target location.
+The targets are about 42x42px on the screen. So I've taken radii in steps of 21 pixels. 
+
+See this screenshot to get a sense of the size of the various radii.
+
+```{r snapshot}
+
+include_graphics('../docs/miscellaneous/g138.png')
+
+```
+
+### Plot descriptions:
+
+Below are 4 plots: 2 for schema-C and 2 for schema-IC.
+
+In all plots, rows are participants.
+
+In the 1st and 3rd plots, columns are sessions, with 4th session being new PA learning. Here, X axes are various accuracy types.
+
+In the 2nd and 4th plots, columns are accuracies measured with different radii. Here, X axes are sessions
+
+
+From the data, seems like radius of 63 might be a good one.
+
+
+```{r radii, warning=FALSE, message=FALSE}
+
+##############################################################################
+# Try multiple radii
+
+conditions_to_plot <- c('schema_c','schema_ic')
+
+for (iCond in conditions_to_plot){
         
+        # - Radii as X axis
+        plot1 <- 
+        session_results_all_ptp_gathered %>%
+                filter(stage != 'practice' & 
+                               condition == iCond) %>%
+                group_by(ptp,session_global,accuracy_type,stimulus) %>%
+                summarize(avg_correct = mean(accuracy)) %>%
+                reorder_levels(accuracy_type, order = c(
+                        'rad_21',
+                        'rad_42',
+                        'rad_63',
+                        'rad_84',
+                        'rad_105',
+                        'rad_126',
+                        'rad_147',
+                        'rad_168'
+                )) %>%
+                ungroup() %>% 
+                ggplot(aes(x=accuracy_type,y=avg_correct)) + 
+                geom_point(aes(group=stimulus,color=stimulus)) + 
+                geom_line(aes(group=stimulus,color=stimulus)) +
+                theme(legend.position = 'none',
+                      axis.text.x = element_text(angle=-90)) + 
+                geom_point(data = filter(session_avg_gathered,condition == iCond)) +         
+                geom_line(data = filter(session_avg_gathered,condition == iCond),
+                          aes(group=condition)) +                 
+                facet_grid(ptp~session_global, labeller=label_both) + 
+                ylim(0,1) + 
+                ggtitle(iCond)
+
+        print(plot1)
+        
+        # Session as the within line
+        plot2 <-
+        session_results_all_ptp_gathered %>%
+                filter(stage != 'practice' & 
+                               condition == iCond) %>%
+                group_by(ptp,session_global,accuracy_type,stimulus) %>%
+                summarize(avg_correct = mean(accuracy)) %>%
+                reorder_levels(accuracy_type, order = c(
+                        'rad_21',
+                        'rad_42',
+                        'rad_63',
+                        'rad_84',
+                        'rad_105',
+                        'rad_126',
+                        'rad_147',
+                        'rad_168'
+                )) %>%
+                ungroup() %>% 
+                ggplot(aes(x=session_global,y=avg_correct)) + 
+                geom_point(aes(group=stimulus,color=stimulus)) + 
+                geom_line(aes(group=stimulus,color=stimulus)) +
+                geom_point(data = filter(session_avg_gathered,condition == iCond)) +
+                geom_line(data = filter(session_avg_gathered,condition == iCond),
+                          aes(group=condition)) +          
+                theme(legend.position = 'none') + 
+                facet_grid(ptp~accuracy_type) + 
+                ylim(0,1) + 
+                ggtitle(iCond)
+        
+        print(plot2)
+
 }
 ```
+
 
 
 ```{r}
