@@ -1,4 +1,5 @@
-# Clean the environment
+# Clean the environment and load libraries ####
+
 rm(list=ls())
 
 # Load libraries
@@ -13,14 +14,15 @@ library(jsonlite)
 library(stringr)
 library(gridExtra)
 
+# Some global setup ###########################################################
+
 writeInExcel <- F
 
-filenames <- c('jatos_results_20210620174618',
-               'jatos_results_20210620174558',
-               'jatos_results_20210620174455',
-               'jatos_results_20210623104448')
+filenames <- c('jatos_results_20210630101826')
 
 session_results_all_ptp <- NULL
+
+# Start the loop ###########################################################
 
 for (iName in filenames){
         # print(iName)

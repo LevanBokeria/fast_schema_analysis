@@ -39,7 +39,12 @@ writeInExcel <- F
 filenames <- c('jatos_results_20210620174618',
                'jatos_results_20210620174558',
                'jatos_results_20210620174455',
-               'jatos_results_20210623104448')
+               'jatos_results_20210623104448',
+               'jatos_results_20210630113300',
+               'jatos_results_20210630101845',
+               'jatos_results_20210630101826')
+
+# filenames <- 'jatos_results_20210630101845'
 
 session_results_all_ptp <- NULL
 
@@ -63,10 +68,16 @@ for (iName in filenames){
         # All the mutations
         session_results <- session_results %>%
                 mutate(session_global = as.factor(
-                        case_when(stage == 'new_pa_learning' ~ 4,
+                        case_when(stage == 'new_pa_learning' & 
+                                          session$new_pa_learning == 1 ~ 4,
+                                  stage == 'new_pa_learning' & 
+                                          session$new_pa_learning == 2 ~ 5,
                                   TRUE ~ as.double(session$schema_learning))),
                        session_condition = as.factor(
-                               case_when(stage == 'new_pa_learning' ~ 1,
+                               case_when(stage == 'new_pa_learning' & 
+                                                 session$new_pa_learning == 1 ~ 1,
+                                         stage == 'new_pa_learning' & 
+                                                 session$new_pa_learning == 2 ~ 2,
                                          TRUE ~ as.double(session$schema_learning))),
                        stage = as.factor(stage),
                        condition = as.factor(condition),
@@ -122,6 +133,13 @@ for (iName in filenames){
                 mutate(ptp = json_decoded$prolific_ID, .before = rt,
                        ptp = as.factor(ptp))
         
+        # Add a row counter for each occurrence of a stimulus, 
+        # within that condition and within that session
+        session_results <- session_results %>%
+                group_by(condition,session_global,stimulus) %>%
+                mutate(stimulus_row_number = row_number()) %>%
+                ungroup()
+        
         session_results_all_ptp <- bind_rows(session_results_all_ptp,session_results)
         
 }
@@ -166,7 +184,7 @@ People struccle in schema-IC condition. Images change location after every sessi
 
 No clear difference at the new-PA learning stage between schema-C and schema-IC
 
-``` {r exact-rough-accuracy, message=FALSE}
+``` {r exact-rough-accuracy, message=FALSE, fig.height=10, fig.width = 8}
 # Exact performance across sessions, C vs IC
 stimulus_avg <-
         session_results_all_ptp %>%
@@ -196,9 +214,9 @@ ggplot(data = stimulus_avg, aes(x=session_global, y=avg_corr)) +
 stimulus_avg <-
         session_results_all_ptp %>%
         filter(stage != 'practice') %>%
-        mutate(roughly_correct = coalesce(roughly_correct,0)) %>%
+        mutate(correct_rad_63 = coalesce(correct_rad_63,0)) %>%
         group_by(ptp,condition,session_global,stimulus) %>%
-        summarize(avg_corr = mean(roughly_correct, na.rm=T)) %>% 
+        summarize(avg_corr = mean(correct_rad_63, na.rm=T)) %>% 
         ungroup()
 
 
@@ -216,9 +234,73 @@ ggplot(data = stimulus_avg, aes(x=session_global, y=avg_corr)) +
         geom_line(data = session_avg, aes(group=condition),size = 1) +
         geom_point(data = session_avg, aes(group=condition)) + 
         ylim(0,1) + 
-        ggtitle('Rough accuracy')
+        ggtitle('correct_rad_63')
 
 ```
+
+## Within session learning plots
+
+
+```{r within-session-learning, fig.height=8, fig.width=8}
+
+condition_to_plot <- 'schema_ic'
+
+# - get the average performance within session across presentation number
+trial_avg <- 
+        session_results_all_ptp %>%
+        filter(stage != 'practice' & condition == condition_to_plot) %>%
+        mutate(correct = coalesce(correct,0)) %>%
+        group_by(ptp,condition,session_global,stimulus_row_number) %>%
+        summarize(correct = mean(correct, na.rm = T)) %>%
+        ungroup()
+
+
+session_results_all_ptp %>%
+        filter(stage != 'practice' & condition == condition_to_plot) %>% 
+        mutate(correct = coalesce(correct,0)) %>%
+        group_by(ptp,condition,session_global,stimulus) %>%
+        ggplot(aes(x=stimulus_row_number,y=correct)) +
+        geom_point(aes(color=stimulus, group=stimulus)) + 
+        geom_line(aes(color=stimulus,group=stimulus)) + 
+
+        
+        geom_point(data = trial_avg, aes(group=condition)) + 
+        geom_line(data = trial_avg, aes(group=condition),size=1) + 
+        
+        facet_grid(ptp~session_global, labeller=label_both) + 
+        ggtitle(paste('Within session learning. ', condition_to_plot,'. Accuracy type: exact',sep='')) + 
+        theme(legend.position = 'none')
+
+# - get the average performance within session across presentation number
+trial_avg <- 
+        session_results_all_ptp %>%
+        filter(stage != 'practice' & condition == condition_to_plot) %>%
+        mutate(correct = coalesce(correct,0)) %>%
+        group_by(ptp,condition,session_global,stimulus_row_number) %>%
+        summarize(correct = mean(correct, na.rm = T)) %>%
+        ungroup()
+
+
+session_results_all_ptp %>%
+        filter(stage != 'practice' & condition == condition_to_plot) %>% 
+        mutate(correct = coalesce(correct,0)) %>%
+        group_by(ptp,condition,session_global,stimulus) %>%
+        ggplot(aes(x=stimulus_row_number,y=correct)) +
+        geom_point(aes(color=stimulus, group=stimulus)) + 
+        geom_line(aes(color=stimulus,group=stimulus)) + 
+
+        
+        geom_point(data = trial_avg, aes(group=condition)) + 
+        geom_line(data = trial_avg, aes(group=condition),size=1) + 
+        
+        facet_grid(ptp~session_global, labeller=label_both) + 
+        ggtitle(paste('Within session learning. ', condition_to_plot,'. Accuracy type: exact',sep='')) + 
+        theme(legend.position = 'none')
+
+
+```
+
+
 
 ## Multiple radii
 
