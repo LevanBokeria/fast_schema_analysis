@@ -18,7 +18,8 @@ pacman::p_load(pacman,
                gridExtra,
                knitr,
                magrittr,
-               pdist)
+               pdist,
+               gghighlight)
 
 # Some global setup ###########################################################
 
@@ -26,7 +27,10 @@ writeInExcel <- F
 
 filenames <- c('jatos_results_20210803132356',
                'jatos_results_20210806153107',
-               'jatos_results_20210806153119')
+               'jatos_results_20210806153119',
+               'jatos_results_20210806175555')
+
+# filenames <- filenames[1]
 
 # filenames <- c('jatos_results_20210708120252',
 #                'jatos_results_20210708134815',
@@ -158,14 +162,14 @@ for (iName in filenames){
         neighbor_new_pa_names <- all_new_pas[neighbor_new_pas]
         
         session_results <- session_results %>%
-                mutate(landmark_neighbor = case_when(
-                        
-                        condition == 'landmark_schema' & 
-                                (new_pa_img == neighbor_new_pa_names[1] |
-                                new_pa_img == neighbor_new_pa_names[2]) ~ TRUE,
-                        TRUE ~ FALSE
+                mutate(landmark_neighbor = as.factor(
+                        case_when(
+                                condition == 'landmark_schema' & 
+                                        (new_pa_img == neighbor_new_pa_names[1] |
+                                         new_pa_img == neighbor_new_pa_names[2]) ~ TRUE,
+                                TRUE ~ NA
+                        )
                 ))
-                
         
         session_results_all_ptp <- bind_rows(session_results_all_ptp,session_results)
         
@@ -247,6 +251,8 @@ for (iName in filenames){
 
 # Whats the order of conditions for this participant?
 cond_order <- unique(session_results$condition)
+cond_order <- c('schema_c','schema_ic','landmark_schema','random_locations',
+                'no_schema')
 
 # - get the average performance within session across presentation number
 trial_avg <- 
@@ -263,93 +269,38 @@ session_results_all_ptp %>%
         filter(condition != 'practice') %>%
         mutate(correct_rad_63 = coalesce(correct_rad_63,0)) %>%
         group_by(ptp,condition,session,new_pa_img) %>%
+        
         ggplot(aes(x=new_pa_img_row_number,y=correct_rad_63)) +
         geom_point(aes(color=new_pa_img, group=new_pa_img)) + 
         geom_line(aes(color=new_pa_img,group=new_pa_img)) + 
 
-        
-        geom_point(data = trial_avg, aes(group=condition)) + 
-        geom_line(data = trial_avg, aes(group=condition),size=1) + 
-        
+        geom_point(data = trial_avg, aes(group=condition)) +
+        geom_line(data = trial_avg, aes(group=condition),size=1) +
+
         facet_grid(ptp~condition*session) + 
         ggtitle(paste('Accuracy type: 63px radius',sep='')) + 
         theme(legend.position = 'none') + 
         xlab('Image repetition') + 
-        scale_x_continuous(breaks=c(1,2,3))
+        scale_x_continuous(breaks=c(1,2,3)) +
+        gghighlight(is.na(landmark_neighbor) == FALSE,
+                    calculate_per_facet = TRUE,
+                    use_direct_label = FALSE)
         
+
+
+# For each participant, make the same plot but ordered by condition order
+condition_orders <- tibble(.rows = 6)
+
+all_ptp <- unique(session_results_all_ptp$ptp)
+
+for (iPtp in as.vector(all_ptp)){
         
-
-
-
-
-##############################################################################
-# Try multiple radiuses
-
-condition_to_plot <- 'schema_ic'
-
-# - Radii as X axis
-session_results_all_ptp_gathered %>%
-        filter(stage != 'practice' & 
-                       condition == condition_to_plot) %>%
-        group_by(ptp,session,accuracy_type,new_pa_img) %>%
-        summarize(avg_correct = mean(accuracy)) %>%
-        reorder_levels(accuracy_type, order = c(
-                'rad_21',
-                'rad_42',
-                'rad_63',
-                'rad_84',
-                'rad_105',
-                'rad_126',
-                'rad_147',
-                'rad_168'
-        )) %>%
-        ungroup() %>% 
-        ggplot(aes(x=accuracy_type,y=avg_correct)) + 
-        geom_point(aes(group=new_pa_img,color=new_pa_img)) + 
-        geom_line(aes(group=new_pa_img,color=new_pa_img)) +
-        theme(legend.position = 'none',
-              axis.text.x = element_text(angle=-90)) + 
-        geom_point(data = filter(session_avg_gathered,condition == condition_to_plot)) +         
-        geom_line(data = filter(session_avg_gathered,condition == condition_to_plot),
-                  aes(group=condition)) +                 
-        facet_grid(ptp~session, labeller=label_both) + 
-        ylim(0,1) + 
-        ggtitle(condition_to_plot)
-
-# Session as the within line
-
-session_results_all_ptp_gathered %>%
-        filter(stage != 'practice' & 
-                       condition == condition_to_plot) %>%
-        group_by(ptp,session,accuracy_type,new_pa_img) %>%
-        summarize(avg_correct = mean(accuracy)) %>%
-        reorder_levels(accuracy_type, order = c(
-                'rad_21',
-                'rad_42',
-                'rad_63',
-                'rad_84',
-                'rad_105',
-                'rad_126',
-                'rad_147',
-                'rad_168'
-        )) %>%
-        ungroup() %>% 
-        ggplot(aes(x=session,y=avg_correct)) + 
-        geom_point(aes(group=new_pa_img,color=new_pa_img)) + 
-        geom_line(aes(group=new_pa_img,color=new_pa_img)) +
-        geom_point(data = filter(session_avg_gathered,condition == condition_to_plot)) +
-        geom_line(data = filter(session_avg_gathered,condition == condition_to_plot),
-                  aes(group=condition)) +          
-        theme(legend.position = 'none') + 
-        facet_grid(ptp~accuracy_type) + 
-        ylim(0,1) + 
-        ggtitle(condition_to_plot)
-
-
-
-
-
-
+        condition_orders[iPtp] <- 
+                unique(
+                        session_results_all_ptp$condition[
+                                session_results_all_ptp$ptp==iPtp
+                                ])
+}
 
 
 
