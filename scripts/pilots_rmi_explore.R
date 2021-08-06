@@ -6,24 +6,32 @@
 
 rm(list=ls())
 
-# Load libraries
-library(tidyverse)
-library(rstatix)
-library(DT)
-library(kableExtra)
-# library(rjson)
-library(readr)
-library(writexl)
-library(jsonlite)
-library(stringr)
-library(gridExtra)
-library(magrittr)
+pacman::p_load(pacman,
+               tidyverse,
+               rstatix,
+               DT,
+               kableExtra,
+               readr,
+               writexl,
+               jsonlite,
+               stringr,
+               gridExtra,
+               knitr,
+               magrittr,
+               pdist)
 
 # Some global setup ###########################################################
 
 writeInExcel <- F
 
-filenames <- c('jatos_results_20210708120252')
+filenames <- c('jatos_results_20210803132356',
+               'jatos_results_20210806153107',
+               'jatos_results_20210806153119')
+
+# filenames <- c('jatos_results_20210708120252',
+#                'jatos_results_20210708134815',
+#                'jatos_results_20210708134829',
+#                'jatos_results_20210708134836')
 
 session_results_all_ptp <- NULL
 
@@ -107,12 +115,57 @@ for (iName in filenames){
                 mutate(ptp = json_decoded$prolific_ID, .before = rt,
                        ptp = as.factor(ptp))
         
+        # If its participant lgffsg, then fix the problem with session counters
+        if (json_decoded$prolific_ID == 'lgffsg'){
+                session_results$session[
+                        (session_results$condition == 'landmark_schema' |
+                         session_results$condition == 'random_locations' |
+                         session_results$condition == 'no_schema') &
+                         session_results$session == 1] <- 2
+                
+                session_results$session[
+                        (session_results$condition == 'landmark_schema' |
+                         session_results$condition == 'random_locations' |
+                         session_results$condition == 'no_schema') &
+                         is.na(session_results$session)] <- 1                
+        }
+        
         # Add a row counter for each occurrence of a new_pa_img, 
         # within that condition and within that session
         session_results <- session_results %>%
                 group_by(condition,session,new_pa_img) %>%
                 mutate(new_pa_img_row_number = row_number()) %>%
                 ungroup()
+        
+        # Mark which of the new PA items are the neighbors in the landmark_schema condition
+        # - what are all the new PAs for this ptp for landmark condition?
+        all_new_pas <- 
+                json_decoded[["inputData"]][["stimuli"]][["landmark_schema"]][["new_pa_learning"]]
+        
+        # - what are the coorinates of these new PAs and of schema PAs?
+        new_pa_coords <- 
+                json_decoded[["inputData"]][["condition_coords"]][["landmark_schema"]][["new_pa_learning"]]
+        
+        schema_pa_coords <- json_decoded[["inputData"]][["condition_coords"]][["landmark_schema"]][["schema_learning"]]
+        
+        # - Now, find the indices of those rows that are next to schema PAs:
+        distances <- as.matrix(pdist(as.matrix(new_pa_coords),as.matrix(schema_pa_coords)))
+        
+        # - Find the coordinates of the neighbor
+        neighbor_new_pas <- which(distances <= sqrt(2)+0.1,arr.ind=TRUE)
+        neighbor_new_pas <- neighbor_new_pas[,'row'] 
+        
+        neighbor_new_pa_names <- all_new_pas[neighbor_new_pas]
+        
+        session_results <- session_results %>%
+                mutate(landmark_neighbor = case_when(
+                        
+                        condition == 'landmark_schema' & 
+                                (new_pa_img == neighbor_new_pa_names[1] |
+                                new_pa_img == neighbor_new_pa_names[2]) ~ TRUE,
+                        TRUE ~ FALSE
+                ))
+                
         
         session_results_all_ptp <- bind_rows(session_results_all_ptp,session_results)
         
@@ -192,12 +245,13 @@ for (iName in filenames){
 # Within session learning #####################################################
 
 
-condition_to_plot <- 'schema_ic'
+# Whats the order of conditions for this participant?
+cond_order <- unique(session_results$condition)
 
 # - get the average performance within session across presentation number
 trial_avg <- 
         session_results_all_ptp %>%
-        filter(condition == condition_to_plot) %>%
+        filter(condition != 'practice') %>%
         mutate(correct_rad_63 = coalesce(correct_rad_63,0)) %>%
         group_by(ptp,condition,session,new_pa_img_row_number) %>%
         summarize(correct_rad_63 = mean(correct_rad_63, na.rm = T)) %>%
@@ -205,7 +259,8 @@ trial_avg <-
 
 
 session_results_all_ptp %>%
-        filter(condition == condition_to_plot) %>% 
+        reorder_levels(condition, order = cond_order) %>%
+        filter(condition != 'practice') %>%
         mutate(correct_rad_63 = coalesce(correct_rad_63,0)) %>%
         group_by(ptp,condition,session,new_pa_img) %>%
         ggplot(aes(x=new_pa_img_row_number,y=correct_rad_63)) +
@@ -216,9 +271,11 @@ session_results_all_ptp %>%
         geom_point(data = trial_avg, aes(group=condition)) + 
         geom_line(data = trial_avg, aes(group=condition),size=1) + 
         
-        facet_grid(ptp~session, labeller=label_both) + 
-        ggtitle(paste(condition_to_plot,'. Accuracy type: 63px radius',sep='')) + 
-        theme(legend.position = 'none')
+        facet_grid(ptp~condition*session) + 
+        ggtitle(paste('Accuracy type: 63px radius',sep='')) + 
+        theme(legend.position = 'none') + 
+        xlab('Image repetition') + 
+        scale_x_continuous(breaks=c(1,2,3))
         
         
 

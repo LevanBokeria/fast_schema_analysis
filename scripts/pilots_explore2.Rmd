@@ -12,18 +12,17 @@ knitr::opts_chunk$set(echo = FALSE)
 # Clean the environment
 rm(list=ls())
 
-# Load libraries
-library(tidyverse)
-library(rstatix)
-library(DT)
-library(kableExtra)
-# library(rjson)
-library(readr)
-library(writexl)
-library(jsonlite)
-library(stringr)
-library(gridExtra)
-library(knitr)
+pacman::p_load(pacman,
+              tidyverse,
+              rstatix,
+              DT,
+              kableExtra,
+              readr,
+              writexl,
+              jsonlite,
+              stringr,
+              gridExtra,
+              knitr)
 
 ```
 
