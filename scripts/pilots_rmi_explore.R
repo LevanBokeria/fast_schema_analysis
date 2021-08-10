@@ -65,6 +65,12 @@ for (iName in filenames){
         session_results %<>% 
                 select(!c('internal_node_id','trial_index','trial_type'))
         
+        # Sanity check
+        if (nrow(session_results) != 186){
+                stop('Session results are wrong length!')
+        }
+        
+        
         # All the mutations
         session_results <- session_results %>%
                 mutate(session = as.factor(session),
@@ -77,8 +83,10 @@ for (iName in filenames){
                        ),
                        mouse_dist_cb = abs(mouse_clientX - pa_center_x) +
                                abs(mouse_clientY - pa_center_y),
-                       mouse_dist_euclid = sqrt((mouse_clientX - pa_center_x)^2 +
-                                                        (mouse_clientY - pa_center_y)^2),
+                       mouse_dist_euclid = sqrt(
+                               (mouse_clientX - pa_center_x)^2 +
+                               (mouse_clientY - pa_center_y)^2
+                               ),
                        roughly_correct = case_when(
                                abs(rc_dist_euclid) < 2 ~ 1,
                                TRUE ~ 0
@@ -148,11 +156,12 @@ for (iName in filenames){
         all_new_pas <- 
                 json_decoded[["inputData"]][["stimuli"]][["landmark_schema"]][["new_pa_learning"]]
         
-        # - what are the coorinates of these new PAs and of schema PAs?
+        # - what are the coordinates of these new PAs and of schema PAs?
         new_pa_coords <- 
                 json_decoded[["inputData"]][["condition_coords"]][["landmark_schema"]][["new_pa_learning"]]
         
-        schema_pa_coords <- json_decoded[["inputData"]][["condition_coords"]][["landmark_schema"]][["schema_learning"]]
+        schema_pa_coords <- 
+                json_decoded[["inputData"]][["condition_coords"]][["landmark_schema"]][["schema_learning"]]
         
         # - Now, find the indices of those rows that are next to schema PAs:
         distances <- as.matrix(pdist(as.matrix(new_pa_coords),as.matrix(schema_pa_coords)))
@@ -293,40 +302,80 @@ cond_order <- unique(session_results$condition)
 cond_order <- c('schema_c','schema_ic','landmark_schema','random_locations',
                 'no_schema')
 
-# - get the average performance within session across presentation number
-trial_avg <- 
-        session_results_all_ptp %>%
-        filter(condition != 'practice') %>%
-        mutate(correct_rad_63 = coalesce(correct_rad_63,0)) %>%
-        group_by(ptp,condition,session,new_pa_img_row_number) %>%
-        summarize(correct_rad_63 = mean(correct_rad_63, na.rm = T)) %>%
-        ungroup()
+# What accuracy type are we using?
 
+acc_to_use <- '63'
 
-fig <- session_results_all_ptp %>%
-        reorder_levels(condition, order = cond_order) %>%
-        reorder_levels(ptp, order = c('lgffsg','asdfg','32423',
-                                      'jhgf','1111111')) %>%
-        filter(condition != 'practice') %>%
-        mutate(correct_rad_63 = coalesce(correct_rad_63,0)) %>%
-        group_by(ptp,condition,session,new_pa_img) %>%
+if (acc_to_use == '63'){
         
-        ggplot(aes(x=new_pa_img_row_number,y=correct_rad_63)) +
-        geom_point(aes(color=new_pa_img, group=new_pa_img)) + 
-        geom_line(aes(color=new_pa_img,group=new_pa_img)) + 
+        # - get the average performance within session across presentation number
+        trial_avg <-
+                session_results_all_ptp %>%
+                filter(condition != 'practice') %>%
+                mutate(correct_rad_63 = coalesce(correct_rad_63,0)) %>%
+                group_by(ptp,condition,session,new_pa_img_row_number) %>%
+                summarize(correct_rad_63 = mean(correct_rad_63, na.rm = T)) %>%
+                ungroup()
 
-        geom_point(data = trial_avg, aes(group=condition)) +
-        geom_line(data = trial_avg, aes(group=condition),size=1) +
 
-        facet_grid(ptp~condition*session) + 
-        ggtitle(paste('Accuracy type: 63px radius',sep='')) + 
-        theme(legend.position = 'none') + 
-        xlab('Image repetition') + 
-        scale_x_continuous(breaks=c(1,2,3)) +
-        gghighlight(is.na(landmark_neighbor) == FALSE,
-                    calculate_per_facet = TRUE,
-                    use_direct_label = FALSE)
+        fig <- session_results_all_ptp %>%
+                reorder_levels(condition, order = cond_order) %>%
+                reorder_levels(ptp, order = c('lgffsg','asdfg','32423',
+                                              'jhgf','1111111')) %>%
+                filter(condition != 'practice') %>%
+                mutate(correct_rad_63 = coalesce(correct_rad_63,0)) %>%
+                group_by(ptp,condition,session,new_pa_img) %>%
+
+                ggplot(aes(x=new_pa_img_row_number,y=correct_rad_63)) +
+                geom_point(aes(color=new_pa_img, group=new_pa_img)) +
+                geom_line(aes(color=new_pa_img,group=new_pa_img)) +
+
+                geom_point(data = trial_avg, aes(group=condition)) +
+                geom_line(data = trial_avg, aes(group=condition),size=1) +
+
+                facet_grid(ptp~condition*session) +
+                ggtitle(paste('Accuracy type: 63px radius',sep='')) +
+                theme(legend.position = 'none') +
+                xlab('Image repetition') +
+                scale_x_continuous(breaks=c(1,2,3)) +
+                gghighlight(is.na(landmark_neighbor) == FALSE,
+                            calculate_per_facet = TRUE,
+                            use_direct_label = FALSE)
+} else if (acc_to_use == '42'){
+        # - get the average performance within session across presentation number
+        trial_avg <- 
+                session_results_all_ptp %>%
+                filter(condition != 'practice') %>%
+                mutate(correct_rad_42 = coalesce(correct_rad_42,0)) %>%
+                group_by(ptp,condition,session,new_pa_img_row_number) %>%
+                summarize(correct_rad_42 = mean(correct_rad_42, na.rm = T)) %>%
+                ungroup()
         
+        
+        fig <- session_results_all_ptp %>%
+                reorder_levels(condition, order = cond_order) %>%
+                reorder_levels(ptp, order = c('lgffsg','asdfg','32423',
+                                              'jhgf','1111111')) %>%
+                filter(condition != 'practice') %>%
+                mutate(correct_rad_42 = coalesce(correct_rad_42,0)) %>%
+                group_by(ptp,condition,session,new_pa_img) %>%
+                
+                ggplot(aes(x=new_pa_img_row_number,y=correct_rad_42)) +
+                geom_point(aes(color=new_pa_img, group=new_pa_img)) + 
+                geom_line(aes(color=new_pa_img,group=new_pa_img)) + 
+                
+                geom_point(data = trial_avg, aes(group=condition)) +
+                geom_line(data = trial_avg, aes(group=condition),size=1) +
+                
+                facet_grid(ptp~condition*session) + 
+                ggtitle(paste('Accuracy type: 42px radius',sep='')) + 
+                theme(legend.position = 'none') + 
+                xlab('Image repetition') + 
+                scale_x_continuous(breaks=c(1,2,3)) +
+                gghighlight(is.na(landmark_neighbor) == FALSE,
+                            calculate_per_facet = TRUE,
+                            use_direct_label = FALSE)
+}
 print(fig)
 
 # For each participant, make the same plot but ordered by condition order
