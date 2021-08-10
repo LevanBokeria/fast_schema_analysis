@@ -28,7 +28,8 @@ writeInExcel <- F
 filenames <- c('jatos_results_20210803132356',
                'jatos_results_20210806153107',
                'jatos_results_20210806153119',
-               'jatos_results_20210806175555')
+               'jatos_results_20210806175555',
+               'jatos_results_20210810134845')
 
 # filenames <- filenames[1]
 
@@ -38,6 +39,7 @@ filenames <- c('jatos_results_20210803132356',
 #                'jatos_results_20210708134836')
 
 session_results_all_ptp <- NULL
+feedback_all_ptp <- NULL
 
 # Start the loop ###########################################################
 
@@ -173,7 +175,43 @@ for (iName in filenames){
         
         session_results_all_ptp <- bind_rows(session_results_all_ptp,session_results)
         
+        # Add up feedback
+        curr_ptp_feedback <- 
+                as_tibble(
+                        json_decoded[["outputData"]][["debriefing"]][["response"]]
+                        )
+        
+        curr_ptp_feedback <- curr_ptp_feedback %>%
+                mutate(ptp = json_decoded$prolific_ID, .before = Q0,
+                       ptp = as.factor(ptp))        
+        # - concatenate
+        feedback_all_ptp <- bind_rows(feedback_all_ptp,curr_ptp_feedback)
+        
+        
 }
+
+
+
+
+## Add the factor of whether they saw grid lines or not ----------------------- 
+session_results_all_ptp %<>%
+        mutate(saw_grid_lines = case_when(
+                ptp == 'lgffsg' | ptp == 'asdfg' | ptp == '32423' ~ FALSE,
+                ptp == 'jhgf' | ptp == '1111111' ~ TRUE,
+                TRUE ~ NA
+        ))
+
+names(feedback_all_ptp) <- c('ptp',
+                              'Notice blue schema_C',
+                              'Notice green schema_IC',
+                              'Notice red landmarks',
+                              'Notice yellow random',
+                              'Strategy?',
+                              'Border?',
+                              'Center?',
+                              'Use visible to learn hidden?',
+                              'Durations',
+                              'Anything else')
 
 # Session by session learning ##################################################
 
@@ -246,6 +284,7 @@ for (iName in filenames){
 #         
 
 
+
 # Within session learning #####################################################
 
 
@@ -264,8 +303,10 @@ trial_avg <-
         ungroup()
 
 
-session_results_all_ptp %>%
+fig <- session_results_all_ptp %>%
         reorder_levels(condition, order = cond_order) %>%
+        reorder_levels(ptp, order = c('lgffsg','asdfg','32423',
+                                      'jhgf','1111111')) %>%
         filter(condition != 'practice') %>%
         mutate(correct_rad_63 = coalesce(correct_rad_63,0)) %>%
         group_by(ptp,condition,session,new_pa_img) %>%
@@ -286,7 +327,7 @@ session_results_all_ptp %>%
                     calculate_per_facet = TRUE,
                     use_direct_label = FALSE)
         
-
+print(fig)
 
 # For each participant, make the same plot but ordered by condition order
 condition_orders <- tibble(.rows = 6)
@@ -302,7 +343,8 @@ for (iPtp in as.vector(all_ptp)){
                                 ])
 }
 
-
+condition_orders <- 
+        condition_orders[,c('lgffsg','asdfg','32423','jhgf','1111111')]
 
 
 
