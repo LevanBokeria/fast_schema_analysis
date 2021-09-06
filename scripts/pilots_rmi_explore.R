@@ -313,7 +313,7 @@ if (acc_to_use == '63'){
                 session_results_all_ptp %>%
                 filter(condition != 'practice') %>%
                 mutate(correct_rad_63 = coalesce(correct_rad_63,0)) %>%
-                group_by(ptp,condition,session,new_pa_img_row_number) %>%
+                group_by(condition,session,new_pa_img_row_number) %>%
                 summarize(correct_rad_63 = mean(correct_rad_63, na.rm = T)) %>%
                 ungroup()
 
@@ -324,7 +324,7 @@ if (acc_to_use == '63'){
                                               'jhgf','1111111')) %>%
                 filter(condition != 'practice') %>%
                 mutate(correct_rad_63 = coalesce(correct_rad_63,0)) %>%
-                group_by(ptp,condition,session,new_pa_img) %>%
+                group_by(condition,session,new_pa_img) %>%
 
                 ggplot(aes(x=new_pa_img_row_number,y=correct_rad_63)) +
                 geom_point(aes(color=new_pa_img, group=new_pa_img)) +
@@ -333,7 +333,7 @@ if (acc_to_use == '63'){
                 geom_point(data = trial_avg, aes(group=condition)) +
                 geom_line(data = trial_avg, aes(group=condition),size=1) +
 
-                facet_grid(ptp~condition*session) +
+                facet_grid(~condition*session) +
                 ggtitle(paste('Accuracy type: 63px radius',sep='')) +
                 theme(legend.position = 'none') +
                 xlab('Image repetition') +
