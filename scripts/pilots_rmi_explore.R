@@ -29,7 +29,13 @@ filenames <- c('jatos_results_20211027204610',
                'jatos_results_20211027204642',
                'jatos_results_20211027204700',
                'jatos_results_20211027204707',
-               'jatos_results_20211027205947')
+               'jatos_results_20211027205947',
+               'jatos_results_20211028173401',
+               'jatos_results_20211028173430',
+               'jatos_results_20211028173435',
+               'jatos_results_20211028174128',
+               'jatos_results_20211028204501',
+               'jatos_results_20211028204526')
 
 session_results_all_ptp <- NULL
 feedback_all_ptp <- NULL
@@ -154,37 +160,48 @@ for (iName in filenames){
                 mutate(new_pa_img_row_number = row_number()) %>%
                 ungroup()
         
-        # Mark which of the new PA items are the neighbors in the landmark_schema condition
-        # - what are all the new PAs for this ptp for landmark condition?
-        all_new_pas <- 
-                json_decoded[["inputData"]][["stimuli"]][["landmark_schema"]][["new_pa_learning"]]
         
-        # - what are the coordinates of these new PAs and of schema PAs?
-        new_pa_coords <- 
-                json_decoded[["inputData"]][["condition_coords"]][["landmark_schema"]][["new_pa_learning"]]
+        # Mark which of the new PA items are the neighbors in all conditions
+        all_conditions <- c('schema_c','schema_ic','landmark_schema','random_locations')
         
-        schema_pa_coords <- 
-                json_decoded[["inputData"]][["condition_coords"]][["landmark_schema"]][["schema_learning"]]
-        
-        # - Now, find the indices of those rows that are next to schema PAs:
-        distances <- as.matrix(pdist(as.matrix(new_pa_coords),as.matrix(schema_pa_coords)))
-        
-        # - Find the coordinates of the neighbor
-        neighbor_new_pas <- which(distances <= sqrt(2)+0.1,arr.ind=TRUE)
-        neighbor_new_pas <- neighbor_new_pas[,'row'] 
-        
-        neighbor_new_pa_names <- all_new_pas[neighbor_new_pas]
-        
-        session_results <- session_results %>%
-                mutate(landmark_neighbor = as.factor(
-                        case_when(
-                                condition == 'landmark_schema' & 
-                                        (new_pa_img %in% neighbor_new_pa_names) ~ TRUE,
-                                condition == 'landmark_schema' &
-                                        (!new_pa_img %in% neighbor_new_pa_names) ~ FALSE,
-                                TRUE ~ NA
-                        )
-                ))
+        # - create the column with just NAs at first
+        session_results$adjascent_neighbor <- NA        
+                
+        for (iCond in all_conditions){
+                
+                print(iCond)
+                
+                # - what are all the new PAs for this ptp for this condition?
+                all_new_pas <- 
+                        json_decoded[["inputData"]][["stimuli"]][[iCond]][["new_pa_learning"]]
+                
+                # - what are the coordinates of these new PAs and of schema PAs?
+                new_pa_coords <- 
+                        json_decoded[["inputData"]][["condition_coords"]][[iCond]][["new_pa_learning"]]
+                
+                schema_pa_coords <- 
+                        json_decoded[["inputData"]][["condition_coords"]][[iCond]][["schema_learning"]]
+                
+                # - Now, find the indices of those rows that are next to schema PAs:
+                distances <- as.matrix(pdist(as.matrix(new_pa_coords),as.matrix(schema_pa_coords)))
+                
+                # - Find the coordinates of the neighbor
+                neighbor_new_pas <- which(distances <= sqrt(2)+0.1,arr.ind=TRUE)
+                neighbor_new_pas <- neighbor_new_pas[,'row'] 
+                
+                neighbor_new_pa_names <- all_new_pas[neighbor_new_pas]
+                
+                # Now, for this condition, wherever the newPA is a neighbor, mark TRUE. Else mark FALSE
+                session_results$adjascent_neighbor[
+                        session_results$condition == iCond & 
+                                session_results$new_pa_img %in% neighbor_new_pa_names] <- 
+                        TRUE
+                session_results$adjascent_neighbor[
+                        session_results$condition == iCond & 
+                                !session_results$new_pa_img %in% neighbor_new_pa_names] <- 
+                        FALSE                
+                
+        }
         
         session_results_all_ptp <- bind_rows(session_results_all_ptp,session_results)
         
@@ -203,7 +220,8 @@ for (iName in filenames){
         
 }
 
-
+session_results_all_ptp <- session_results_all_ptp %>%
+        filter(ptp != '609478fa9e5b4d075246cfaf')
 
 
 ## Add the factor of whether they saw grid lines or not ----------------------- 
@@ -308,7 +326,7 @@ cond_order <- c('schema_c','schema_ic','landmark_schema','random_locations',
 ## Plot separately for each participant ----------------------------------------
 
 # get the average performance across the targets, by repetition
-mean_by_target <-
+mean_by_rep <-
         session_results_all_ptp %>%
         filter(!condition %in% c('practice','practice2')) %>%
         mutate(correct_rad_63 = coalesce(correct_rad_63,0)) %>%
@@ -318,22 +336,22 @@ mean_by_target <-
         ungroup()
 
 # Calculate mean for neighbor vs non neighbor
-mean_by_landmark <-
+mean_by_landmark_rep <-
         session_results_all_ptp %>%
         filter(!condition %in% c('practice','practice2')) %>%
         mutate(correct_rad_63 = coalesce(correct_rad_63,0)) %>%
-        group_by(ptp,condition,session,landmark_neighbor,new_pa_img_row_number) %>%
+        group_by(ptp,condition,session,adjascent_neighbor,new_pa_img_row_number) %>%
         summarize(correct_rad_63_mean = mean(correct_rad_63, na.rm = T),
                   correct_rad_63_sd = sd(correct_rad_63, na.rm = T)) %>%
         ungroup() %>%
         mutate(correct_rad_63_mean = 
                        case_when(
-                               is.na(landmark_neighbor) ~ as.numeric(NA),
+                               is.na(adjascent_neighbor) ~ as.numeric(NA),
                                TRUE ~ correct_rad_63_mean
                                ),
                correct_rad_63_sd =
                        case_when(
-                               is.na(landmark_neighbor) ~ as.numeric(NA),
+                               is.na(adjascent_neighbor) ~ as.numeric(NA),
                                TRUE ~ correct_rad_63_sd
                        ),
                )
@@ -352,20 +370,20 @@ fig <- session_results_all_ptp %>%
                   alpha=0.2) +
 
         # Add the average across toys
-        geom_point(data = mean_by_target,
+        geom_point(data = mean_by_rep,
                    aes(y=correct_rad_63_mean)) +
-        geom_line(data = mean_by_target,
+        geom_line(data = mean_by_rep,
                   aes(y=correct_rad_63_mean),
                   size=2) +
 
         # Add the average across landmark or not
-        geom_point(data = mean_by_landmark, 
-                   aes(group=landmark_neighbor,
-                       color=landmark_neighbor,
+        geom_point(data = mean_by_landmark_rep, 
+                   aes(group=adjascent_neighbor,
+                       color=adjascent_neighbor,
                        y=correct_rad_63_mean)) +
-        geom_line(data = mean_by_landmark, 
-                  aes(group=landmark_neighbor,
-                      color=landmark_neighbor,
+        geom_line(data = mean_by_landmark_rep, 
+                  aes(group=adjascent_neighbor,
+                      color=adjascent_neighbor,
                       y=correct_rad_63_mean),
                   size=1) +
         
@@ -374,11 +392,92 @@ fig <- session_results_all_ptp %>%
         # theme(legend.position = 'none') +
         xlab('Image repetition') +
         scale_x_continuous(breaks=c(1,2,3,4)) 
-        # gghighlight(is.na(landmark_neighbor) == FALSE,
+        # gghighlight(is.na(adjascent_neighbor) == FALSE,
         #             calculate_per_facet = TRUE,
         #             use_direct_label = FALSE)        
 
 print(fig)
+
+# Now plot averaged over participants
+mean_by_rep_across_ptp <-
+        session_results_all_ptp %>%
+        filter(!condition %in% c('practice','practice2')) %>%
+        mutate(correct_rad_63 = coalesce(correct_rad_63,0)) %>%
+        group_by(condition,session,new_pa_img_row_number) %>%
+        summarize(correct_rad_63_mean = mean(correct_rad_63, na.rm = T),
+                  correct_rad_63_sd = sd(correct_rad_63, na.rm = T),
+                  n = n(),
+                  correct_rad_63_95_CI = 1.96*sd(correct_rad_63)/sqrt(n())) %>%
+        ungroup()
+
+# Calculate mean for neighbor vs non neighbor, across participants
+mean_by_landmark_rep_across_ptp <-
+        session_results_all_ptp %>%
+        filter(!condition %in% c('practice','practice2')) %>%
+        mutate(correct_rad_63 = coalesce(correct_rad_63,0)) %>%
+        group_by(condition,session,adjascent_neighbor,new_pa_img_row_number) %>%
+        summarize(correct_rad_63_mean = mean(correct_rad_63, na.rm = T),
+                  correct_rad_63_sd = sd(correct_rad_63, na.rm = T),
+                  n = n(),
+                  correct_rad_63_95_CI = 1.96*sd(correct_rad_63)/sqrt(n())) %>%
+        ungroup() %>%
+        mutate(correct_rad_63_mean = 
+                       case_when(
+                               is.na(adjascent_neighbor) ~ as.numeric(NA),
+                               TRUE ~ correct_rad_63_mean
+                       ),
+               correct_rad_63_sd =
+                       case_when(
+                               is.na(adjascent_neighbor) ~ as.numeric(NA),
+                               TRUE ~ correct_rad_63_sd
+                       ),
+               correct_rad_63_95_CI =
+                       case_when(
+                               is.na(adjascent_neighbor) ~ as.numeric(NA),
+                               TRUE ~ correct_rad_63_95_CI
+                       ),               
+        )
+
+fig_across_ptp <- mean_by_rep_across_ptp %>%
+        reorder_levels(condition, order = cond_order) %>%
+        ggplot(aes(x=new_pa_img_row_number,y=correct_rad_63_mean)) +
+        geom_point(alpha=0.2) +
+        geom_line(size=2) +
+        geom_ribbon(aes(ymin = correct_rad_63_mean-correct_rad_63_95_CI,
+                        ymax = correct_rad_63_mean+correct_rad_63_95_CI),
+                    alpha=0.2) +        
+        
+        # # Add the average across toys
+        # geom_point(aes(y=correct_rad_63_mean)) +
+        # geom_line(aes(y=correct_rad_63_mean),
+        #           size=2) +
+        
+        # # Add the average across landmark or not
+        geom_point(data = mean_by_landmark_rep_across_ptp,
+                   aes(group=adjascent_neighbor,
+                       color=adjascent_neighbor,
+                       y=correct_rad_63_mean)) +
+        geom_line(data = mean_by_landmark_rep_across_ptp,
+                  aes(group=adjascent_neighbor,
+                      color=adjascent_neighbor,
+                      y=correct_rad_63_mean),
+                  size=1) +
+        geom_ribbon(data = mean_by_landmark_rep_across_ptp,
+                    aes(group=adjascent_neighbor,
+                        color=adjascent_neighbor,
+                        ymin = correct_rad_63_mean-correct_rad_63_95_CI,
+                        ymax = correct_rad_63_mean+correct_rad_63_95_CI),
+                    alpha=0.1,
+                    linetype = "dotted") +
+
+        facet_wrap(~condition*session, nrow = 1) +
+        ggtitle(paste('Accuracy type: 63px radius',sep='')) +
+        # theme(legend.position = 'none') +
+        xlab('Image repetition') +
+        scale_x_continuous(breaks=c(1,2,3,4)) +
+        theme(legend.position = 'top')
+
+print(fig_across_ptp)
 
 # # What accuracy type are we using?
 # 
@@ -414,7 +513,7 @@ print(fig)
 #                 theme(legend.position = 'none') +
 #                 xlab('Image repetition') +
 #                 scale_x_continuous(breaks=c(1,2,3,4)) +
-#                 gghighlight(is.na(landmark_neighbor) == FALSE,
+#                 gghighlight(is.na(adjascent_neighbor) == FALSE,
 #                             calculate_per_facet = TRUE,
 #                             use_direct_label = FALSE)
 # } else if (acc_to_use == '42'){
@@ -448,7 +547,7 @@ print(fig)
 #                 theme(legend.position = 'none') + 
 #                 xlab('Image repetition') + 
 #                 scale_x_continuous(breaks=c(1,2,3,4)) +
-#                 gghighlight(is.na(landmark_neighbor) == FALSE,
+#                 gghighlight(is.na(adjascent_neighbor) == FALSE,
 #                             calculate_per_facet = TRUE,
 #                             use_direct_label = FALSE)
 # }
