@@ -438,6 +438,23 @@ mean_by_landmark_rep_across_ptp <-
                        ),               
         )
 
+mean_diff_neighbor_non_neighbor <- 
+        mean_by_landmark_rep %>%
+        pivot_wider(id_cols = c(ptp,condition,session,new_pa_img_row_number),
+                    names_from = adjascent_neighbor,
+                    names_prefix = 'neighbor_',
+                    values_from = correct_rad_63_mean) %>% 
+        select(!neighbor_NA) %>% 
+        mutate(neighbor_diff = neighbor_TRUE - neighbor_FALSE)
+        
+mean_diff_neighbor_non_neighbor_across_ptp <-
+        mean_diff_neighbor_non_neighbor %>%
+        group_by(condition,session,new_pa_img_row_number) %>%
+        summarise(mean_diff_correct_rad_63 = mean(neighbor_diff),
+                  n = n(),
+                  ci_95 = 1.96*sd(neighbor_diff)/sqrt(n()))
+
+
 fig_across_ptp <- mean_by_rep_across_ptp %>%
         reorder_levels(condition, order = cond_order) %>%
         ggplot(aes(x=new_pa_img_row_number,y=correct_rad_63_mean)) +
@@ -478,6 +495,21 @@ fig_across_ptp <- mean_by_rep_across_ptp %>%
         theme(legend.position = 'top')
 
 print(fig_across_ptp)
+
+# Plot the difference between landmark and non-landmark items
+fig_neighbor_diff <- mean_diff_neighbor_non_neighbor_across_ptp %>%
+        ggplot(aes(x=new_pa_img_row_number,y=mean_diff_correct_rad_63)) +
+        geom_line(size=1) +
+        geom_ribbon(aes(ymin = mean_diff_correct_rad_63 - ci_95,
+                        ymax = mean_diff_correct_rad_63 + ci_95),
+                    alpha = 0.2) +
+        
+        
+        facet_wrap(~condition*session, nrow = 1) +
+        geom_hline(yintercept = 0, linetype = 'dashed') +
+        ggtitle('Difference between landmark and non-landmark ite')
+
+print(fig_neighbor_diff)
 
 # # What accuracy type are we using?
 # 
