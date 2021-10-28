@@ -25,8 +25,11 @@ pacman::p_load(pacman,
 
 writeInExcel <- F
 
-filenames <- c('jatos_results_20211015104432',
-               'jatos_results_20211015104457')
+filenames <- c('jatos_results_20211027204610',
+               'jatos_results_20211027204642',
+               'jatos_results_20211027204700',
+               'jatos_results_20211027204707',
+               'jatos_results_20211027205947')
 
 session_results_all_ptp <- NULL
 feedback_all_ptp <- NULL
@@ -34,7 +37,7 @@ feedback_all_ptp <- NULL
 # Start the loop ###########################################################
 
 for (iName in filenames){
-        # print(iName)
+        print(iName)
         
         filepath <- paste('./data/pilots/gui_downloads/',iName,'.txt', sep='')
         
@@ -48,6 +51,8 @@ for (iName in filenames){
         
         json_decoded <- fromJSON(json_content)
         
+        print(json_decoded$prolific_ID)
+        
         session_results <- as_tibble(
                 json_decoded$outputData$session_results_new_pa_learning
                 )
@@ -56,9 +61,9 @@ for (iName in filenames){
                 select(!c('internal_node_id','trial_index','trial_type'))
         
         # Sanity check
-        if (nrow(session_results) != 252){
-                stop('Session results are wrong length!')
-        }
+        # if (nrow(session_results) != 264){
+        #         stop('Session results are wrong length!')
+        # }
         
         n_trials_per_session <- session_results %>%
                 filter(!condition %in% c('practice','practice2')) %>% 
