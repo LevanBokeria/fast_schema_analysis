@@ -221,7 +221,12 @@ for (iName in filenames){
 }
 
 session_results_all_ptp <- session_results_all_ptp %>%
-        filter(ptp != '609478fa9e5b4d075246cfaf')
+        filter(ptp != '609478fa9e5b4d075246cfaf') %>%
+        droplevels()
+
+session_results_all_ptp <- 
+        session_results_all_ptp %>% 
+        mutate(ptp_trunk = str_trunc(as.character(ptp),width=10))
 
 
 ## Add the factor of whether they saw grid lines or not ----------------------- 
@@ -330,7 +335,7 @@ mean_by_rep <-
         session_results_all_ptp %>%
         filter(!condition %in% c('practice','practice2')) %>%
         mutate(correct_rad_63 = coalesce(correct_rad_63,0)) %>%
-        group_by(ptp,condition,session,new_pa_img_row_number) %>%
+        group_by(ptp_trunk,condition,session,new_pa_img_row_number) %>%
         summarize(correct_rad_63_mean = mean(correct_rad_63, na.rm = T),
                   correct_rad_63_sd = sd(correct_rad_63, na.rm = T)) %>%
         ungroup()
@@ -340,7 +345,7 @@ mean_by_landmark_rep <-
         session_results_all_ptp %>%
         filter(!condition %in% c('practice','practice2')) %>%
         mutate(correct_rad_63 = coalesce(correct_rad_63,0)) %>%
-        group_by(ptp,condition,session,adjascent_neighbor,new_pa_img_row_number) %>%
+        group_by(ptp_trunk,condition,session,adjascent_neighbor,new_pa_img_row_number) %>%
         summarize(correct_rad_63_mean = mean(correct_rad_63, na.rm = T),
                   correct_rad_63_sd = sd(correct_rad_63, na.rm = T)) %>%
         ungroup() %>%
@@ -361,7 +366,7 @@ fig <- session_results_all_ptp %>%
         droplevels() %>%
         reorder_levels(condition, order = cond_order) %>%
         mutate(correct_rad_63 = coalesce(correct_rad_63,0)) %>%
-        group_by(ptp,condition,session,new_pa_img) %>%
+        group_by(ptp_trunk,condition,session,new_pa_img) %>%
         
         ggplot(aes(x=new_pa_img_row_number,y=correct_rad_63)) +
         geom_point(aes(group=new_pa_img),
@@ -387,7 +392,7 @@ fig <- session_results_all_ptp %>%
                       y=correct_rad_63_mean),
                   size=1) +
         
-        facet_grid(ptp~condition*session) +
+        facet_grid(ptp_trunk~condition*session) +
         ggtitle(paste('Accuracy type: 63px radius',sep='')) +
         # theme(legend.position = 'none') +
         xlab('Image repetition') +
@@ -440,7 +445,7 @@ mean_by_landmark_rep_across_ptp <-
 
 mean_diff_neighbor_non_neighbor <- 
         mean_by_landmark_rep %>%
-        pivot_wider(id_cols = c(ptp,condition,session,new_pa_img_row_number),
+        pivot_wider(id_cols = c(ptp_trunk,condition,session,new_pa_img_row_number),
                     names_from = adjascent_neighbor,
                     names_prefix = 'neighbor_',
                     values_from = correct_rad_63_mean) %>% 
