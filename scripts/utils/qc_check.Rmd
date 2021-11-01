@@ -36,16 +36,6 @@ pacman::p_load(pacman,
 # Load the data #########################################
 session_results_all_ptp <- import('./results/pilots/preprocessed_data/session_results_long_form.csv')
 
-session_results_all_ptp <- session_results_all_ptp %>%
-        mutate(ptp_trunk = str_trunc(ptp, width = 10)) %>% 
-        reorder_levels(condition, order = c('practice',
-                                            'practice2',
-                                            'schema_c',
-                                            'schema_ic',
-                                            'landmark_schema',
-                                            'random_locations',
-                                            'no_schema'))
-
 ```
 
 ```{r plot-rt-distributions, fig.width=15, fig.height=10}

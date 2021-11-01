@@ -172,6 +172,14 @@ for (iName in filenames){
                 mutate(new_pa_img_row_number = row_number()) %>%
                 ungroup()
         
+        # Add a row counter for each occurrence of a new_pa_img, 
+        # within that condition, across the two sessions
+        session_results <- session_results %>%
+                group_by(condition,new_pa_img) %>%
+                mutate(new_pa_img_row_number_across_sessions = row_number()) %>%
+                ungroup()
+        
+        
         # Add trial index counter for each session
         session_results <- session_results %>%
                 group_by(condition,session) %>%
@@ -263,6 +271,16 @@ for (iName in filenames){
         all_ptp_break_rt[iPtp,] <- curr_ptp_break_rt
         
 }
+
+session_results_all_ptp <- session_results_all_ptp %>%
+mutate(ptp_trunk = str_trunc(as.character(ptp), width = 10)) %>% 
+        reorder_levels(condition, order = c('practice',
+                                            'practice2',
+                                            'schema_c',
+                                            'schema_ic',
+                                            'landmark_schema',
+                                            'random_locations',
+                                            'no_schema'))
 
 # Add columnt names #############
 
