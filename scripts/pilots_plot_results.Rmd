@@ -12,6 +12,7 @@ knitr::opts_chunk$set(echo = TRUE)
 rm(list=ls())
 
 pacman::p_load(pacman,
+               rio,
                tidyverse,
                rstatix,
                DT,
@@ -258,7 +259,7 @@ print(fig_across_ptp)
 # Calculate the difference between landmark and non-landmark items
 mean_diff_neighbor_non_neighbor <- 
         mean_by_landmark_rep %>%
-        filter(condition != 'no_schema') %>%
+        filter(!condition %in% c('no_schema','random_locations')) %>%
         pivot_wider(id_cols = c(ptp_trunk,condition,session,new_pa_img_row_number),
                     names_from = adjascent_neighbor,
                     names_prefix = 'neighbor_',

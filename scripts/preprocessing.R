@@ -32,7 +32,7 @@ pacman::p_load(pacman,
 
 # Some global setup ###########################################################
 
-writeInExcel <- F
+saveDataCSV <- TRUE
 
 filenames <- c('jatos_results_20211027204610',
                'jatos_results_20211027204642',
@@ -189,7 +189,7 @@ for (iName in filenames){
         
         
         # Mark which of the new PA items are the neighbors in all conditions
-        all_conditions <- c('schema_c','schema_ic','landmark_schema','random_locations')
+        all_conditions <- c('schema_c','schema_ic','landmark_schema')
         
         # - create the column with just NAs at first
         session_results$adjascent_neighbor <- NA        
@@ -309,8 +309,10 @@ for (iPtp in as.vector(all_ptp)){
 }
 
 # Save everything #######################
-write_csv(session_results_all_ptp,'./results/pilots/preprocessed_data/session_results_long_form.csv')
-write_csv(feedback_all_ptp,'./results/pilots/preprocessed_data/feedback_all_ptp.csv')
-write_csv(listings_all_ptp,'./results/pilots/preprocessed_data/listings_all_ptp.csv')
-write.csv(all_ptp_break_rt,'./results/pilots/preprocessed_data/all_ptp_break_rt.csv',
+if (saveDataCSV){
+        write_csv(session_results_all_ptp,'./results/pilots/preprocessed_data/session_results_long_form.csv')
+        write_csv(feedback_all_ptp,'./results/pilots/preprocessed_data/feedback_all_ptp.csv')
+        write_csv(listings_all_ptp,'./results/pilots/preprocessed_data/listings_all_ptp.csv')
+        write.csv(all_ptp_break_rt,'./results/pilots/preprocessed_data/all_ptp_break_rt.csv',
           row.names = FALSE)
+}
