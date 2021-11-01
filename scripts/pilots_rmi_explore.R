@@ -220,9 +220,9 @@ for (iName in filenames){
         
 }
 
-session_results_all_ptp <- session_results_all_ptp %>%
-        filter(ptp != '609478fa9e5b4d075246cfaf') %>%
-        droplevels()
+# session_results_all_ptp <- session_results_all_ptp %>%
+#         filter(ptp != '609478fa9e5b4d075246cfaf') %>%
+#         droplevels()
 
 session_results_all_ptp <- 
         session_results_all_ptp %>% 

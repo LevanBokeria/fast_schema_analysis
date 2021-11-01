@@ -1,0 +1,108 @@
+---
+title: "qc_check"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r initial-setup}
+
+# Clean the environment and load libraries ############################
+
+rm(list=ls())
+
+pacman::p_load(pacman,
+               rio,
+               tidyverse,
+               rstatix,
+               DT,
+               kableExtra,
+               readr,
+               writexl,
+               jsonlite,
+               stringr,
+               gridExtra,
+               knitr,
+               magrittr,
+               pdist,
+               gghighlight)
+
+```
+
+```{r load-data}
+
+# Load the data #########################################
+session_results_all_ptp <- import('./results/pilots/preprocessed_data/session_results_long_form.csv')
+
+session_results_all_ptp <- session_results_all_ptp %>%
+        mutate(ptp_trunk = str_trunc(ptp, width = 10)) %>% 
+        reorder_levels(condition, order = c('practice',
+                                            'practice2',
+                                            'schema_c',
+                                            'schema_ic',
+                                            'landmark_schema',
+                                            'random_locations',
+                                            'no_schema'))
+
+```
+
+```{r plot-rt-distributions, fig.width=15, fig.height=10}
+
+# Plot RT distributions
+session_results_all_ptp %>%
+        filter(!condition %in% c('practice','practice2')) %>%
+        reorder_levels(condition, order = c('schema_c',
+                                            'schema_ic',
+                                            'landmark_schema',
+                                            'random_locations',
+                                            'no_schema')) %>%
+        ggplot(aes(x=rt,fill=session)) +
+        geom_histogram(color="#e9ecef", alpha=0.6, position = 'identity') + 
+        facet_grid(ptp_trunk~condition+session) + 
+        theme(legend.position = '') +
+        geom_vline(xintercept = c(0,500,1000),linetype='dashed')
+
+```
+
+
+```{r plot response-heatmaps, fig.width=15, fig.height=10}
+# Plot responses
+session_results_all_ptp %>%
+        ggplot(aes(col,row)) +
+        geom_bin2d(bins=12) +
+        facet_grid(ptp_trunk~condition+session) +
+        theme(panel.grid.minor = element_blank()) +
+        scale_x_continuous(breaks=seq(0,12),limits = c(0,12)) + 
+        scale_y_continuous(breaks=seq(0,12),limits = c(0,12))        
+
+
+```
+
+```{r plot-responses-as-continuous-lines, fig.width=15, fig.height=4}
+# Plot responses as continuous response at the same location
+
+unique_ptp = unique(session_results_all_ptp$ptp)
+
+for (iPtp in unique_ptp){
+        
+        iFig <- session_results_all_ptp %>%
+        filter(ptp == iPtp,
+               !condition %in% c('practice','practice2')) %>%
+        unite('responded_row_col',row:col,remove=FALSE) %>% 
+        mutate(responded_row_col = as.factor(responded_row_col)) %>%
+        ggplot(aes(x=session_trial_idx,y=responded_row_col)) +
+                geom_line(aes(group=ptp)) +
+                facet_grid(ptp_trunk~condition+session)
+        
+        print(iFig)
+        
+}
+
+
+
+
+
+```
+

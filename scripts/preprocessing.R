@@ -172,6 +172,13 @@ for (iName in filenames){
                 mutate(new_pa_img_row_number = row_number()) %>%
                 ungroup()
         
+        # Add trial index counter for each session
+        session_results <- session_results %>%
+                group_by(condition,session) %>%
+                mutate(session_trial_idx = row_number(),
+                       .after = session) %>%
+                ungroup()
+        
         
         # Mark which of the new PA items are the neighbors in all conditions
         all_conditions <- c('schema_c','schema_ic','landmark_schema','random_locations')
