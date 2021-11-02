@@ -42,11 +42,20 @@ cond_order <- unique(session_results_all_ptp$condition)
 cond_order <- c('schema_c','schema_ic','landmark_schema','random_locations',
                 'no_schema')
 
+# Create parameters as starting points for estimations
+a_start <- 0.5
+c_start <- 0.1
+
+a_lower <- 0
+a_upper <- 1
+c_lower <- 0
+c_upper <- 10
+
 # Create the estimation functions #############################################
 
 
 fit_learning_and_asymptote <- function(p,t,y){
-        print(p)
+        # print(p)
         
         y_hat <- p[1]*(1-exp(-p[2]*(t-1)))
         sse <- sum((y-y_hat)^2)
@@ -54,13 +63,57 @@ fit_learning_and_asymptote <- function(p,t,y){
 }
 
 fit_learning_only <- function(p,t,y){
-        print(p)
+        # print(p)
         
         y_hat <- 1-exp(-p*(t-1))
         sse <- sum((y-y_hat)^2)
         return(sse)
 }
 
+add_estimated_data_to_df <- function(df,
+                                     learning_and_asymptote,
+                                     learning_only){
+        
+        df$y_hat_learning_and_asymptote <- NA
+        df$y_hat_learning_only <- NA
+        
+        for (iRow in seq(1,nrow(df))){
+                print(iRow)
+                curr_ptp = df$ptp_trunk[iRow]
+                
+                curr_condition = as.character(df$condition[iRow])
+                
+                # Get the parameters from estimating both learning and asymptote
+                row_idx1 = which(learning_and_asymptote$ptp_trunk == curr_ptp &
+                                         learning_and_asymptote$condition == curr_condition)
+                
+                curr_c1 = learning_and_asymptote$c[row_idx1]
+                curr_a1 = learning_and_asymptote$a[row_idx1]
+                
+                # Get the parameters from estimating learning only
+                row_idx2 = which(learning_only$ptp_trunk == curr_ptp &
+                                         learning_only$condition == curr_condition)
+                
+                curr_c2 = learning_only$c[row_idx2]
+                
+                for (iRep in seq(1,8)){
+                        
+                        idx1 = which(
+                                df$ptp_trunk == curr_ptp &
+                                        df$condition == curr_condition &
+                                        df$new_pa_img_row_number_across_sessions == iRep
+                        )
+                        
+                        df$y_hat_learning_and_asymptote[idx1] <- curr_a1*(1-exp(-curr_c1*(iRep-1)))
+                        df$y_hat_learning_only[idx1]          <- 1      *(1-exp(-curr_c2*(iRep-1)))
+                }
+        }
+        
+        return(df)
+        
+}
+
+# Calculate mean across participants for all data and for landmark/non-landmark ##########
 
 # Now plot averaged over participants
 mean_by_rep_across_ptp <-
@@ -69,38 +122,71 @@ mean_by_rep_across_ptp <-
         droplevels() %>%
         group_by(condition,new_pa_img_row_number_across_sessions) %>%
         summarize(correct_rad_63_mean = mean(correct_rad_63, na.rm = T),
-                  correct_rad_63_sd = sd(correct_rad_63, na.rm = T),
+                  correct_rad_63_sd   = sd(correct_rad_63, na.rm = T),
                   n = n(),
                   correct_rad_63_95_CI = 1.96*sd(correct_rad_63)/sqrt(n())) %>%
         ungroup()
 
-# Calculate mean for neighbor vs non neighbor, across participants
+# Means across participants ##################################################
 mean_by_landmark_rep_across_ptp <-
         session_results_all_ptp %>%
         filter(!condition %in% c('practice','practice2')) %>%
         droplevels() %>%
-        group_by(condition,adjascent_neighbor,new_pa_img_row_number_across_sessions) %>%
+        group_by(condition,
+                 adjascent_neighbor,
+                 new_pa_img_row_number_across_sessions) %>%
         summarize(correct_rad_63_mean = mean(correct_rad_63, na.rm = T),
-                  correct_rad_63_sd = sd(correct_rad_63, na.rm = T),
+                  correct_rad_63_sd   = sd(correct_rad_63, na.rm = T),
                   n = n(),
                   correct_rad_63_95_CI = 1.96*sd(correct_rad_63)/sqrt(n())) %>%
         ungroup() %>%
-        mutate(correct_rad_63_mean =
-                       case_when(
-                               is.na(adjascent_neighbor) ~ as.numeric(NA),
-                               TRUE ~ correct_rad_63_mean
-                       ),
-               correct_rad_63_sd =
-                       case_when(
-                               is.na(adjascent_neighbor) ~ as.numeric(NA),
-                               TRUE ~ correct_rad_63_sd
-                       ),
-               correct_rad_63_95_CI =
-                       case_when(
-                               is.na(adjascent_neighbor) ~ as.numeric(NA),
-                               TRUE ~ correct_rad_63_95_CI
-                       ),
-        )
+        mutate(across(c(correct_rad_63_mean,
+                        correct_rad_63_sd,
+                        correct_rad_63_95_CI),
+                      ~ case_when(
+                              is.na(adjascent_neighbor) ~ as.numeric(NA),
+                              TRUE ~ .
+                      )))
+
+
+# Learning rate and asymptote across participants ###########################
+learning_and_asymptote_across_participants <- mean_by_rep_across_ptp %>%
+        group_by(condition) %>%
+        do(as.data.frame(
+                optim(c(a_start,c_start),
+                      fit_learning_and_asymptote,
+                      gr = NULL,
+                      seq(1,8),
+                      .$correct_rad_63_mean,
+                      method = 'L-BFGS-B',
+                      lower = c(a_lower,c_lower),
+                      upper = c(c_lower,c_upper)
+                )) %>%
+                   mutate(id = row_number()) %>%
+                   pivot_wider(names_from = id,
+                               values_from = par,
+                               names_prefix = 'par_')) %>%
+        rename(sse = value,
+               n_iterations = counts,
+               a = par_1,
+               c = par_2) %>%
+        ungroup()
+
+learning_only_across_participants <- mean_by_rep_across_ptp %>%
+        group_by(condition) %>%
+        do(as.data.frame(
+                optimize(fit_learning_only,
+                      c(c_lower,c_upper),
+                      seq(1,8),
+                      .$correct_rad_63_mean
+                      )) %>%
+        rename(sse = objective,
+               c = minimum)) %>%
+        ungroup()
+
+
+# Manually add predicted y_hats to the dataframe
+
 
 fig_across_ptp <- mean_by_rep_across_ptp %>%
         ggplot(aes(x=new_pa_img_row_number_across_sessions,
@@ -166,7 +252,7 @@ print(fig_across_ptp)
 #            seq(1,48),
 #            y)
 # 
-# m1 <- optim(c(0.5,0.1),
+# m1 <- optim(c(a_start,c_start),
 #             fit_learning,
 #             gr = NULL,
 #             seq(1,48),
@@ -209,7 +295,7 @@ print(fig_across_ptp)
 # learning_and_asymptote <- mean_by_rep %>%
 #         group_by(ptp_trunk,condition) %>%
 #         do(as.data.frame(
-#                 optim(c(0.5,0.1),
+#                 optim(c(a_start,c_start),
 #                       fit_learning_and_asymptote,
 #                       gr = NULL,
 #                       seq(1,8),
