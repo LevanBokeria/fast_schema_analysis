@@ -51,7 +51,7 @@ a_upper <- 1
 c_lower <- 0
 c_upper <- 10
 
-# Create the estimation functions #############################################
+# Create the estimation and other functions #############################################
 
 
 fit_learning_and_asymptote <- function(p,t,y){
@@ -70,6 +70,7 @@ fit_learning_only <- function(p,t,y){
         return(sse)
 }
 
+# A function to add the estimated data for the dataframe containing individual participant data
 add_estimated_data_to_df <- function(df,
                                      learning_and_asymptote,
                                      learning_only){
@@ -113,9 +114,48 @@ add_estimated_data_to_df <- function(df,
         
 }
 
-# Calculate mean across participants for all data and for landmark/non-landmark ##########
+# A function to add the estimated data for the dataframe containing across participant data
+add_estimated_data_to_df_across_participants <- function(df,
+                                     learning_and_asymptote,
+                                     learning_only){
+        
+        df$y_hat_learning_and_asymptote <- NA
+        df$y_hat_learning_only <- NA
+        
+        for (iRow in seq(1,nrow(df))){
+                print(iRow)
 
-# Now plot averaged over participants
+                curr_condition = as.character(df$condition[iRow])
+                
+                # Get the parameters from estimating both learning and asymptote
+                row_idx1 = which(learning_and_asymptote$condition == curr_condition)
+                
+                curr_c1 = learning_and_asymptote$c[row_idx1]
+                curr_a1 = learning_and_asymptote$a[row_idx1]
+                
+                # Get the parameters from estimating learning only
+                row_idx2 = which(learning_only$condition == curr_condition)
+                
+                curr_c2 = learning_only$c[row_idx2]
+                
+                for (iRep in seq(1,8)){
+                        
+                        idx1 = which(
+                                df$condition == curr_condition &
+                                df$new_pa_img_row_number_across_sessions == iRep
+                        )
+                        
+                        df$y_hat_learning_and_asymptote[idx1] <- curr_a1*(1-exp(-curr_c1*(iRep-1)))
+                        df$y_hat_learning_only[idx1]          <- 1      *(1-exp(-curr_c2*(iRep-1)))
+                }
+        }
+        
+        return(df)
+        
+}
+
+
+# Calculate mean across participants for all data and for landmark/non-landmark ##########
 mean_by_rep_across_ptp <-
         session_results_all_ptp %>%
         filter(!condition %in% c('practice','practice2')) %>%
@@ -127,7 +167,7 @@ mean_by_rep_across_ptp <-
                   correct_rad_63_95_CI = 1.96*sd(correct_rad_63)/sqrt(n())) %>%
         ungroup()
 
-# Means across participants ##################################################
+# Now for landmarks and non
 mean_by_landmark_rep_across_ptp <-
         session_results_all_ptp %>%
         filter(!condition %in% c('practice','practice2')) %>%
@@ -150,8 +190,10 @@ mean_by_landmark_rep_across_ptp <-
 
 
 # Learning rate and asymptote across participants ###########################
+
+# For all the data ---------------------------------------------------------
 learning_and_asymptote_across_participants <- mean_by_rep_across_ptp %>%
-        group_by(condition) %>%
+        group_by(condition) %>% 
         do(as.data.frame(
                 optim(c(a_start,c_start),
                       fit_learning_and_asymptote,
@@ -160,7 +202,7 @@ learning_and_asymptote_across_participants <- mean_by_rep_across_ptp %>%
                       .$correct_rad_63_mean,
                       method = 'L-BFGS-B',
                       lower = c(a_lower,c_lower),
-                      upper = c(c_lower,c_upper)
+                      upper = c(a_upper,c_upper)
                 )) %>%
                    mutate(id = row_number()) %>%
                    pivot_wider(names_from = id,
@@ -171,6 +213,23 @@ learning_and_asymptote_across_participants <- mean_by_rep_across_ptp %>%
                a = par_1,
                c = par_2) %>%
         ungroup()
+
+learning_and_asymptote_across_participants_y_hat_a_c <- 
+        learning_and_asymptote_across_participants %>%
+        group_by(condition) %>% 
+        mutate(y_hat_a_c = list(a*(1 - exp(-c*(seq(1:8))))),
+               new_pa_img_row_number_across_sessions = list(seq(1:8))) %>%
+        unnest(c(y_hat_a_c,new_pa_img_row_number_across_sessions)) %>%
+        select(c(condition,y_hat_a_c,new_pa_img_row_number_across_sessions)) %>%
+        ungroup()
+
+
+# Merge with the real data
+mean_by_rep_across_ptp <- merge(mean_by_rep_across_ptp,
+                                learning_and_asymptote_across_participants_y_hat_a_c,
+                                by = c('condition',
+                                       'new_pa_img_row_number_across_sessions'))
+
 
 learning_only_across_participants <- mean_by_rep_across_ptp %>%
         group_by(condition) %>%
@@ -184,9 +243,23 @@ learning_only_across_participants <- mean_by_rep_across_ptp %>%
                c = minimum)) %>%
         ungroup()
 
+learning_only_across_participants_y_hat_c <- 
+        learning_only_across_participants %>%
+        group_by(condition) %>% 
+        mutate(y_hat_c = list(1 - exp(-c*(seq(1:8)))),
+               new_pa_img_row_number_across_sessions = list(seq(1:8))) %>%
+        unnest(c(y_hat_c,new_pa_img_row_number_across_sessions)) %>%
+        select(c(condition,y_hat_c,new_pa_img_row_number_across_sessions)) %>%
+        ungroup()
 
-# Manually add predicted y_hats to the dataframe
 
+# Merge with the real data
+mean_by_rep_across_ptp <- merge(mean_by_rep_across_ptp,
+                                learning_only_across_participants_y_hat_c,
+                                by = c('condition',
+                                       'new_pa_img_row_number_across_sessions'))
+
+# Plot this -------------------------------------------------------------------
 
 fig_across_ptp <- mean_by_rep_across_ptp %>%
         ggplot(aes(x=new_pa_img_row_number_across_sessions,
@@ -203,15 +276,15 @@ fig_across_ptp <- mean_by_rep_across_ptp %>%
         #           size=2) +
 
         # # Add the average across landmark or not
-        geom_point(data = mean_by_landmark_rep_across_ptp,
-                   aes(group=adjascent_neighbor,
-                       color=adjascent_neighbor,
-                       y=correct_rad_63_mean)) +
-        geom_line(data = mean_by_landmark_rep_across_ptp,
-                  aes(group=adjascent_neighbor,
-                      color=adjascent_neighbor,
-                      y=correct_rad_63_mean),
-                  size=1) +
+        # geom_point(data = mean_by_landmark_rep_across_ptp,
+        #            aes(group=adjascent_neighbor,
+        #                color=adjascent_neighbor,
+        #                y=correct_rad_63_mean)) +
+        # geom_line(data = mean_by_landmark_rep_across_ptp,
+        #           aes(group=adjascent_neighbor,
+        #               color=adjascent_neighbor,
+        #               y=correct_rad_63_mean),
+        #           size=1) +
         # geom_ribbon(data = mean_by_landmark_rep_across_ptp,
         #             aes(group=adjascent_neighbor,
         #                 color=adjascent_neighbor,
@@ -220,11 +293,25 @@ fig_across_ptp <- mean_by_rep_across_ptp %>%
         #             alpha=0.1,
         #             linetype = "dotted") +
 
+        # Add the y_hat learning and asymptote
+        geom_line(aes(x=new_pa_img_row_number_across_sessions,
+                      y=y_hat_a_c),
+                  size=1,
+                  color='blue',
+                  linetype = 'dashed') +
+        # Add the y_hat learning only
+        geom_line(aes(x=new_pa_img_row_number_across_sessions,
+                      y=y_hat_c),
+                  size=1,
+                  color='red',
+                  linetype = 'dashed') +
+
         facet_wrap(~condition, nrow = 1) +
-        ggtitle(paste('Accuracy type: 63px radius',sep='')) +
+        ggtitle(paste('Real and estimate data',sep='')) +
         xlab('Image repetition') +
+        ylab('63px radius accuracy') +
         scale_x_continuous(breaks=c(1,2,3,4,5,6,7,8)) +
-        theme(legend.position = 'top') +
+        # theme(legend.position = 'top') +
         geom_vline(xintercept = 4.5, linetype = 'dashed')
 
 
