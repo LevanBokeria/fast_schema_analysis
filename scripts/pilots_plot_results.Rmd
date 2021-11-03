@@ -29,8 +29,6 @@ pacman::p_load(pacman,
                pdist,
                gghighlight)
 
-source('./scripts/utils/functions_for_fitting_learning_curves.R')
-
 
 # Load the data ##########################
 session_results_all_ptp <- import(
@@ -47,12 +45,34 @@ session_results_all_ptp <- session_results_all_ptp %>%
                                             'no_schema')
                        )
 
-# Whats the order of conditions for this participant?
-cond_order <- unique(session_results_all_ptp$condition)
-cond_order <- c('schema_c','schema_ic','landmark_schema','random_locations',
-                'no_schema')
 
-# For each participant, make the same plot but ordered by condition order
+```
+
+```{r define-parameters-load-functions}
+
+# Load an external script which contains functions for estimating either just the learning rate, or also the asymptote
+source('./scripts/utils/functions_for_fitting_learning_curves.R')
+
+# Create parameters as starting points for estimations
+a_start <- 0.5
+c_start <- 0.1
+
+# Create lower and upper bound constraints on the asymptote and learning rate
+a_lower <- 0
+a_upper <- 1
+c_lower <- 0
+c_upper <- 10
+
+```
+
+
+# Separately for each participant:
+
+We have a total of 11 participants. One of them did very poorly because he/she did not follow instructions. Those data are excluded from subsequent analysis.
+
+```{r order-of-conditions}
+
+# For each participant, list the order of conditions
 condition_orders <- tibble(.rows = 7)
 
 all_ptp <- unique(session_results_all_ptp$ptp)
@@ -66,25 +86,13 @@ for (iPtp in as.vector(all_ptp)){
                                 ])
 }
 
-# Create parameters as starting points for estimations
-a_start <- 0.5
-c_start <- 0.1
-
-a_lower <- 0
-a_upper <- 1
-c_lower <- 0
-c_upper <- 10
-
 ```
 
-# Separately for each participant:
 
-We have a total of 11 participants. One of them did very poorly because he/she did not follow instructions. Those data are excluded from subsequent analysis.
-
-```{r each-ptp-separately, fig.width=15, fig.height=15, warning=FALSE, message=FALSE}
+```{r each-participant-separately, fig.width=15, fig.height=15, warning=FALSE, message=FALSE}
 
 
-## Plot separately for each participant ----------------------------------------
+## Plot performance separately for each participant ----------------------------------------
 
 # get the average performance across the targets, by repetition
 mean_by_rep <-
@@ -149,9 +157,21 @@ print(fig)
 
 # Averaged across participants
 
+```{r exclude-qc-fail-participants}
+
+# Exclude the one participant that did not pay attention to instructions
+session_results_all_ptp <-
+        session_results_all_ptp %>%
+        filter(ptp != '609478fa9e5b4d075246cfaf') %>%
+        droplevels()
+
+```
+
+
+
 ```{r plot-averaged-over-participants, fig.width=15, fig.height=5, warning=FALSE, message=FALSE}
 
-# Calculate mean across participants for all data and for landmark/non-landmark ##########
+# Calculate mean across participants for all data
 mean_by_rep_across_ptp <-
         session_results_all_ptp %>%
         filter(!condition %in% c('practice','practice2')) %>%
@@ -163,7 +183,7 @@ mean_by_rep_across_ptp <-
                   correct_rad_63_95_CI = 1.96*sd(correct_rad_63)/sqrt(n())) %>%
         ungroup()
 
-# Now for landmarks and non
+# Now for landmarks and non-landmakr items
 mean_by_landmark_rep_across_ptp <-
         session_results_all_ptp %>%
         filter(!condition %in% c('practice','practice2')) %>%
@@ -225,7 +245,9 @@ Positive means landmark items were better than non-landmark ones.
 mean_diff_neighbor_non_neighbor <- 
         mean_by_landmark_rep %>%
         filter(!condition %in% c('no_schema','random_locations')) %>%
-        pivot_wider(id_cols = c(ptp_trunk,condition,new_pa_img_row_number_across_sessions),
+        pivot_wider(id_cols = c(ptp_trunk,
+                                condition,
+                                new_pa_img_row_number_across_sessions),
                     names_from = adjascent_neighbor,
                     names_prefix = 'neighbor_',
                     values_from = correct_rad_63_mean) %>%
@@ -276,10 +298,11 @@ Seems like estimating both is better. So for the rest of the analysis, I will st
 
 ```{r estimate-learning-curves, warning=FALSE, message=FALSE}
 
-# Learning rate and asymptote across participants ###########################
-
-# For all the data ---------------------------------------------------------
-learning_and_asymptote_across_participants <- mean_by_rep_across_ptp %>%
+# Learning rate and asymptote across participants.
+# This variable will contain the asymptote and learning rate for each condition, 
+# since its using data averaged across participants
+learning_and_asymptote_across_participants <- 
+        mean_by_rep_across_ptp %>%
         group_by(condition) %>% 
         do(as.data.frame(
                 optim(c(a_start,c_start),
@@ -301,23 +324,27 @@ learning_and_asymptote_across_participants <- mean_by_rep_across_ptp %>%
                c = par_2) %>%
         ungroup()
 
-learning_and_asymptote_across_participants_y_hat_a_c <- 
+# Now, generate predicted data based on the estimated learning rate and asymptote
+learning_and_asymptote_across_participants_y_hat <- 
         learning_and_asymptote_across_participants %>%
         group_by(condition) %>% 
         mutate(y_hat_a_c = list(a*(1 - exp(-c*(seq(1:8))))),
                new_pa_img_row_number_across_sessions = list(seq(1:8))) %>%
-        unnest(c(y_hat_a_c,new_pa_img_row_number_across_sessions)) %>%
-        select(c(condition,y_hat_a_c,new_pa_img_row_number_across_sessions)) %>%
+        unnest(c(y_hat_a_c,
+                 new_pa_img_row_number_across_sessions)) %>%
+        select(c(condition,
+                 y_hat_a_c,
+                 new_pa_img_row_number_across_sessions)) %>%
         ungroup()
 
 
-# Merge with the real data
+# Merge with the real data, so we can plot efficiently
 mean_by_rep_across_ptp <- merge(mean_by_rep_across_ptp,
-                                learning_and_asymptote_across_participants_y_hat_a_c,
+                                learning_and_asymptote_across_participants_y_hat,
                                 by = c('condition',
                                        'new_pa_img_row_number_across_sessions'))
 
-
+# Now do the same but estimating only the learning rate:
 learning_only_across_participants <- mean_by_rep_across_ptp %>%
         group_by(condition) %>%
         do(as.data.frame(
@@ -330,7 +357,8 @@ learning_only_across_participants <- mean_by_rep_across_ptp %>%
                c = minimum)) %>%
         ungroup()
 
-learning_only_across_participants_y_hat_c <- 
+# Generate predicted data based on the learning rate estimate
+learning_only_across_participants_y_hat <- 
         learning_only_across_participants %>%
         group_by(condition) %>% 
         mutate(y_hat_c = list(1 - exp(-c*(seq(1:8)))),
@@ -342,15 +370,15 @@ learning_only_across_participants_y_hat_c <-
 
 # Merge with the real data
 mean_by_rep_across_ptp <- merge(mean_by_rep_across_ptp,
-                                learning_only_across_participants_y_hat_c,
+                                learning_only_across_participants_y_hat,
                                 by = c('condition',
                                        'new_pa_img_row_number_across_sessions'))
 
 ```
 
 ```{r plot-learning-fits, fig.width=15, fig.height=5, warning=FALSE, message=FALSE}
-# Plot this -------------------------------------------------------------------
 
+# Plot the fits
 fig_across_ptp <- mean_by_rep_across_ptp %>%
         ggplot(aes(x=new_pa_img_row_number_across_sessions,
                    y=correct_rad_63_mean)) +
@@ -366,6 +394,7 @@ fig_across_ptp <- mean_by_rep_across_ptp %>%
                   size=1,
                   color='blue',
                   linetype = 'dashed') +
+        
         # Add the y_hat learning only
         geom_line(aes(x=new_pa_img_row_number_across_sessions,
                       y=y_hat_c),
