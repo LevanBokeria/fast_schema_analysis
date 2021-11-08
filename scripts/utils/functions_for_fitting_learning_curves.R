@@ -34,3 +34,13 @@ fit_learning_only <- function(p,t,y){
         sse <- sum((y-y_hat)^2)
         return(sse)
 }
+
+fit_learning_asymptote_and_intercept <- function(p,t,y){
+        
+        # Define the function:
+        y_hat <- (p[1]-p[3])*(1-exp(-p[2]*(t-1))) + p[3]
+        
+        sse <- sum((y-y_hat)^2)
+        
+        return(sse)
+}

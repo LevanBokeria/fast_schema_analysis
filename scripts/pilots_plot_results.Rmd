@@ -416,8 +416,6 @@ fig_across_ptp <- mean_by_rep_across_ptp %>%
 
 print(fig_across_ptp)
 
-
-
 ```
 
 ### Fit to landmark/non-landmark separately
@@ -666,7 +664,12 @@ fig_each_ptp <- mean_by_rep %>%
         ylab('63px radius accuracy') +
         scale_x_continuous(breaks=c(1,2,3,4,5,6,7,8)) +
         # theme(legend.position = 'top') +
-        geom_vline(xintercept = 4.5, linetype = 'dashed')
+        geom_vline(xintercept = 4.5, linetype = 'dashed') +
+        geom_text(data=learning_and_asymptote_each_participant,
+                  aes(x=6.5,y=0.25, label = paste('a=',as.character(round(a,2)),' ','c=',as.character(round(c,2)),seq=''))) + 
+        geom_text(data=learning_only_each_participant,
+                  aes(x=7,y=0.05, label = paste('c=',as.character(round(c,2)),seq='')))        
+        # annotate('text',x=1.5,y = 0.85, label = learning_and_asymptote_each_participant$a ,size=3)
 
 
 print(fig_each_ptp)
