@@ -331,7 +331,7 @@ learning_and_asymptote_across_participants <-
 learning_and_asymptote_across_participants_y_hat <- 
         learning_and_asymptote_across_participants %>%
         group_by(condition) %>% 
-        mutate(y_hat_a_c = list(a*(1 - exp(-c*(seq(1:8))))),
+        mutate(y_hat_a_c = list(a*(1 - exp(-c*(seq(1:8)-1)))),
                new_pa_img_row_number_across_sessions = list(seq(1:8))) %>%
         unnest(c(y_hat_a_c,
                  new_pa_img_row_number_across_sessions)) %>%
@@ -364,7 +364,7 @@ learning_only_across_participants <- mean_by_rep_across_ptp %>%
 learning_only_across_participants_y_hat <- 
         learning_only_across_participants %>%
         group_by(condition) %>% 
-        mutate(y_hat_c = list(1 - exp(-c*(seq(1:8)))),
+        mutate(y_hat_c = list(1 - exp(-c*(seq(1:8)-1))),
                new_pa_img_row_number_across_sessions = list(seq(1:8))) %>%
         unnest(c(y_hat_c,new_pa_img_row_number_across_sessions)) %>%
         select(c(condition,y_hat_c,new_pa_img_row_number_across_sessions)) %>%
@@ -396,14 +396,14 @@ fig_across_ptp <- mean_by_rep_across_ptp %>%
                       y=y_hat_a_c),
                   size=1,
                   color='blue',
-                  linetype = 'dashed') +
+                  linetype = 'longdash') +
         
         # Add the y_hat learning only
         geom_line(aes(x=new_pa_img_row_number_across_sessions,
                       y=y_hat_c),
                   size=1,
                   color='red',
-                  linetype = 'dashed') +
+                  linetype = 'dotted') +
 
         facet_wrap(~condition, nrow = 1) +
         ggtitle(paste('Real and estimate data',sep='')) +
@@ -457,7 +457,7 @@ learning_and_asymptote_across_participants_landmark <-
 learning_and_asymptote_across_participants_landmark_y_hat <- 
         learning_and_asymptote_across_participants_landmark %>%
         group_by(condition,adjascent_neighbor) %>% 
-        mutate(y_hat_a_c = list(a*(1 - exp(-c*(seq(1:8))))),
+        mutate(y_hat_a_c = list(a*(1 - exp(-c*(seq(1:8)-1)))),
                new_pa_img_row_number_across_sessions = list(seq(1:8))) %>%
         unnest(c(y_hat_a_c,
                  new_pa_img_row_number_across_sessions)) %>%
@@ -492,7 +492,7 @@ learning_only_across_participants_landmark <- mean_by_landmark_rep_across_ptp %>
 learning_only_across_participants_landmark_y_hat <- 
         learning_only_across_participants_landmark %>%
         group_by(condition,adjascent_neighbor) %>% 
-        mutate(y_hat_c = list(1 - exp(-c*(seq(1:8)))),
+        mutate(y_hat_c = list(1 - exp(-c*(seq(1:8)-1))),
                new_pa_img_row_number_across_sessions = list(seq(1:8))) %>%
         unnest(c(y_hat_c,new_pa_img_row_number_across_sessions)) %>%
         select(c(condition,y_hat_c,new_pa_img_row_number_across_sessions)) %>%
@@ -556,6 +556,327 @@ print(fig_landmark_across_ptp)
 
 
 ```{r learning-curves-for-each-participant}
+
+# Learning rate and asymptote for landmark neighbor trials
+learning_and_asymptote_each_participant <- 
+        mean_by_rep %>%
+        group_by(ptp_trunk,condition) %>%
+        do(as.data.frame(
+                optim(c(a_start,c_start),
+                      fit_learning_and_asymptote,
+                      gr = NULL,
+                      seq(1,8),
+                      .$correct_rad_63_mean,
+                      method = 'L-BFGS-B',
+                      lower = c(a_lower,c_lower),
+                      upper = c(a_upper,c_upper)
+                )) %>% 
+                   mutate(id = row_number()) %>%
+                   pivot_wider(names_from = id,
+                               values_from = par,
+                               names_prefix = 'par_')) %>% 
+        rename(sse = value,
+               n_iterations = counts,
+               a = par_1,
+               c = par_2) %>%
+        ungroup()
+
+# Now, generate predicted data based on the estimated learning rate and asymptote
+learning_and_asymptote_each_participant_y_hat <- 
+        learning_and_asymptote_each_participant %>%
+        group_by(ptp_trunk,condition) %>% 
+        mutate(y_hat_a_c = list(a*(1 - exp(-c*(seq(1:8)-1)))),
+               new_pa_img_row_number_across_sessions = list(seq(1:8))) %>%
+        unnest(c(y_hat_a_c,
+                 new_pa_img_row_number_across_sessions)) %>%
+        select(c(condition,
+                 y_hat_a_c,
+                 new_pa_img_row_number_across_sessions)) %>%
+        ungroup()
+
+
+# Merge with the real data, so we can plot efficiently
+mean_by_rep <- merge(mean_by_rep,
+                     learning_and_asymptote_each_participant_y_hat,
+                     by = c('ptp_trunk',
+                            'condition',
+                            'new_pa_img_row_number_across_sessions'))
+
+# Now do the same but estimating only the learning rate: ######################
+learning_only_each_participant <- 
+        mean_by_rep %>%
+        group_by(ptp_trunk,condition) %>%
+        do(as.data.frame(
+                optimize(fit_learning_only,
+                      c(c_lower,c_upper),
+                      seq(1,8),
+                      .$correct_rad_63_mean
+                      )) %>%
+        rename(sse = objective,
+               c = minimum)) %>%
+        ungroup()
+
+# Generate predicted data based on the learning rate estimate
+learning_only_each_participant_y_hat <- 
+        learning_only_each_participant %>%
+        group_by(ptp_trunk,condition) %>% 
+        mutate(y_hat_c = list(1 - exp(-c*(seq(1:8)-1))),
+               new_pa_img_row_number_across_sessions = list(seq(1:8))) %>%
+        unnest(c(y_hat_c,new_pa_img_row_number_across_sessions)) %>%
+        select(c(condition,y_hat_c,new_pa_img_row_number_across_sessions)) %>%
+        ungroup()
+
+
+# Merge with the real data
+mean_by_rep <- merge(mean_by_rep,
+                     learning_only_each_participant_y_hat,
+                     by = c('ptp_trunk',
+                            'condition',
+                            'new_pa_img_row_number_across_sessions'))
+
+```
+
+
+```{r plot-learning-fits-each-participant, fig.width=15, fig.height=15, warning=FALSE, message=FALSE}
+
+# Plot the fits
+fig_each_ptp <- mean_by_rep %>%
+        ggplot(aes(x=new_pa_img_row_number_across_sessions,
+                   y=correct_rad_63_mean)) +
+        geom_point() +
+        geom_line(size=1) +
+
+        # Add the y_hat learning and asymptote
+        geom_line(aes(x=new_pa_img_row_number_across_sessions,
+                      y=y_hat_a_c),
+                  size=1,
+                  color='blue',
+                  linetype = 'longdash') +
+        
+        # Add the y_hat learning only
+        geom_line(aes(x=new_pa_img_row_number_across_sessions,
+                      y=y_hat_c),
+                  size=1,
+                  color='red',
+                  linetype = 'dotted') +
+
+        facet_grid(ptp_trunk~condition) +
+        ggtitle(paste('Real and estimate data',sep='')) +
+        xlab('Image repetition') +
+        ylab('63px radius accuracy') +
+        scale_x_continuous(breaks=c(1,2,3,4,5,6,7,8)) +
+        # theme(legend.position = 'top') +
+        geom_vline(xintercept = 4.5, linetype = 'dashed')
+
+
+print(fig_each_ptp)
+
+
+
+```
+
+```{r estimate-learning-curves-landmark-non-landmark-each-participant}
+
+# Learning rate and asymptote for landmark neighbor trials
+learning_and_asymptote_each_participant_landmark <- 
+        mean_by_landmark_rep %>%
+        filter(!condition %in% c('random_locations','no_schema')) %>%
+        group_by(ptp_trunk,condition,adjascent_neighbor) %>% 
+        do(as.data.frame(
+                optim(c(a_start,c_start),
+                      fit_learning_and_asymptote,
+                      gr = NULL,
+                      seq(1,8),
+                      .$correct_rad_63_mean,
+                      method = 'L-BFGS-B',
+                      lower = c(a_lower,c_lower),
+                      upper = c(a_upper,c_upper)
+                )) %>% 
+                   mutate(id = row_number()) %>%
+                   pivot_wider(names_from = id,
+                               values_from = par,
+                               names_prefix = 'par_')) %>% 
+        rename(sse = value,
+               n_iterations = counts,
+               a = par_1,
+               c = par_2) %>%
+        ungroup()
+
+# Now, generate predicted data based on the estimated learning rate and asymptote
+learning_and_asymptote_each_participant_landmark_y_hat <- 
+        learning_and_asymptote_each_participant_landmark %>%
+        group_by(ptp_trunk,condition,adjascent_neighbor) %>% 
+        mutate(y_hat_a_c = list(a*(1 - exp(-c*(seq(1:8)-1)))),
+               new_pa_img_row_number_across_sessions = list(seq(1:8))) %>%
+        unnest(c(y_hat_a_c,
+                 new_pa_img_row_number_across_sessions)) %>%
+        select(c(condition,
+                 y_hat_a_c,
+                 new_pa_img_row_number_across_sessions)) %>%
+        ungroup()
+
+
+# Merge with the real data, so we can plot efficiently
+mean_by_landmark_rep <- merge(mean_by_landmark_rep,
+                              learning_and_asymptote_each_participant_landmark_y_hat,
+                              by = c('ptp_trunk',
+                                     'condition',
+                                     'adjascent_neighbor',
+                                     'new_pa_img_row_number_across_sessions'),
+                              all = TRUE)
+
+# Now do the same but estimating only the learning rate: ######################
+learning_only_each_participant_landmark <- 
+        mean_by_landmark_rep %>%
+        filter(!condition %in% c('random_locations','no_schema')) %>%
+        group_by(ptp_trunk,condition,adjascent_neighbor) %>%
+        do(as.data.frame(
+                optimize(fit_learning_only,
+                      c(c_lower,c_upper),
+                      seq(1,8),
+                      .$correct_rad_63_mean
+                      )) %>%
+        rename(sse = objective,
+               c = minimum)) %>%
+        ungroup()
+
+# Generate predicted data based on the learning rate estimate
+learning_only_each_participant_landmark_y_hat <- 
+        learning_only_each_participant_landmark %>%
+        group_by(ptp_trunk,condition,adjascent_neighbor) %>% 
+        mutate(y_hat_c = list(1 - exp(-c*(seq(1:8)-1))),
+               new_pa_img_row_number_across_sessions = list(seq(1:8))) %>%
+        unnest(c(y_hat_c,new_pa_img_row_number_across_sessions)) %>%
+        select(c(condition,y_hat_c,new_pa_img_row_number_across_sessions)) %>%
+        ungroup()
+
+
+# Merge with the real data
+mean_by_landmark_rep <- merge(mean_by_landmark_rep,
+                                learning_only_each_participant_landmark_y_hat,
+                                by = c('ptp_trunk',
+                                       'condition',
+                                       'adjascent_neighbor',
+                                       'new_pa_img_row_number_across_sessions'),
+                                all = TRUE)
+
+
+
+```
+
+```{r plot-learning-fits-landmark-each-participant, fig.width=15, fig.height=25, warning=FALSE, message=FALSE}
+
+# Plot the fits
+fig_landmark_each_ptp <- mean_by_landmark_rep %>%
+        filter(!condition %in% c('random_locations','no_schema')) %>%
+        ggplot(aes(x=new_pa_img_row_number_across_sessions,
+                   y=correct_rad_63_mean,
+                   group = adjascent_neighbor,
+                   color = adjascent_neighbor)) +
+        geom_point(size=3,alpha=0.3) +
+        geom_line(size=1.5,alpha=0.3) +
+
+        # Add the y_hat learning and asymptote
+        geom_line(aes(x=new_pa_img_row_number_across_sessions,
+                      y=y_hat_a_c,
+                      group = adjascent_neighbor,
+                      color = adjascent_neighbor),
+                  size=1.5,
+                  linetype = 'longdash') +
+
+        # Add the y_hat learning only
+        geom_line(aes(x=new_pa_img_row_number_across_sessions,
+                      y=y_hat_c,
+                      group = adjascent_neighbor,
+                      color = adjascent_neighbor),
+                  size=1.5,
+                  linetype = 'dotted') +
+
+        facet_grid(ptp_trunk~condition) +
+        ggtitle(paste('Real and estimate data',sep='')) +
+        xlab('Image repetition') +
+        ylab('63px radius accuracy') +
+        scale_x_continuous(breaks=c(1,2,3,4,5,6,7,8)) +
+        # theme(legend.position = 'top') +
+        geom_vline(xintercept = 4.5, linetype = 'dashed')
+
+
+print(fig_landmark_each_ptp)
+
+
+
+```
+
+```{r scatterplot-estimated-parameters, fig.height=5, fig.width=8}
+
+learning_and_asymptote_each_participant %>%
+        filter(ptp_trunk != '609478f...') %>%
+        ggplot(aes(x=condition,y=a)) +
+        geom_violin(width=0.3) +
+        geom_dotplot(binaxis='y', stackdir='center',
+                     stackratio=1, dotsize=0.5, fill="black") +        
+        # geom_point(aes(color = ptp_trunk)) +
+        geom_line(aes(group=ptp_trunk,
+                      color=ptp_trunk),
+                  alpha=0.5) +
+        stat_summary(fun=mean, 
+                     geom="point", 
+                     shape=20, 
+                     size=5, 
+                     color="red", 
+                     fill="red") + 
+        stat_summary(fun=median, 
+                     geom="crossbar", 
+                     width=0.2,
+                     color="black") +          
+        ylab('Asymptote estimate') +
+        ggtitle('Estimating both rate and asymptote')
+
+learning_and_asymptote_each_participant %>%
+        filter(ptp_trunk != '609478f...') %>%
+        ggplot(aes(x=condition,y=c)) +
+        geom_violin() +
+        geom_dotplot(binaxis='y', stackdir='center',
+                     stackratio=1, dotsize=0.5, fill="black") +        
+        # geom_point(aes(color = ptp_trunk)) +
+        geom_line(aes(group=ptp_trunk,
+                      color=ptp_trunk),
+                  alpha=0.5) +
+        stat_summary(fun=mean, 
+                     geom="point", 
+                     shape=20, 
+                     size=5, 
+                     color="red", 
+                     fill="red") + 
+        stat_summary(fun=median, 
+                     geom="crossbar", 
+                     width=0.2,
+                     color="black") +          
+        ylab('Learning rate estimate') +
+        ggtitle('Estimating both rate and asymptote')
+
+learning_only_each_participant %>%
+        filter(ptp_trunk != '609478f...') %>%
+        ggplot(aes(x=condition,y=c)) +
+        geom_violin() +
+        geom_dotplot(binaxis='y', stackdir='center',
+                     stackratio=1, dotsize=0.5, fill="black") +        
+        # geom_point(aes(color = ptp_trunk)) +
+        geom_line(aes(group=ptp_trunk,
+                      color=ptp_trunk),
+                  alpha=0.5) +
+        stat_summary(fun=mean, 
+                     geom="point", 
+                     shape=20, 
+                     size=5, 
+                     color="red", 
+                     fill="red") + 
+        stat_summary(fun=median, 
+                     geom="crossbar", 
+                     width=0.2,
+                     color="black") +          
+        ylab('Learning rate estimate') +
+        ggtitle('Estimating only the learning rate')
 
 
 
