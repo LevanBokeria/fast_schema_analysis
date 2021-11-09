@@ -32,7 +32,7 @@ pacman::p_load(pacman,
 
 # Some global setup ###########################################################
 
-saveDataCSV <- TRUE
+saveDataCSV <- T
 
 filenames <- c('jatos_results_20211027204610',
                'jatos_results_20211027204642',
@@ -108,8 +108,9 @@ for (iName in filenames){
                                (mouse_clientX - pa_center_x)^2 +
                                (mouse_clientY - pa_center_y)^2
                                ),
-                       roughly_correct = case_when(
-                               abs(rc_dist_euclid) < 2 ~ 1,
+                       correct_exact = coalesce(correct,0L),
+                       correct_one_square_away = case_when(
+                               abs(rc_dist_euclid) < 1.9 ~ 1,
                                TRUE ~ 0
                        ),
                        correct_rad_21 = case_when(
@@ -131,19 +132,7 @@ for (iName in filenames){
                        correct_rad_105 = case_when(
                                abs(mouse_dist_euclid) <= 105 ~ 1,
                                TRUE ~ 0
-                       ),   
-                       correct_rad_126 = case_when(
-                               abs(mouse_dist_euclid) <= 126 ~ 1,
-                               TRUE ~ 0
-                       ),
-                       correct_rad_147 = case_when(
-                               abs(mouse_dist_euclid) <= 147 ~ 1,
-                               TRUE ~ 0
-                       ),
-                       correct_rad_168 = case_when(
-                               abs(mouse_dist_euclid) <= 168 ~ 1,
-                               TRUE ~ 0
-                       )                 
+                       )
                 )
         
         session_results <- session_results %>%
