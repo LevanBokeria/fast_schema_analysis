@@ -61,14 +61,48 @@ c_start <- 0.1
 a_lower <- 0
 a_upper <- 1
 c_lower <- 0
-c_upper <- 10
+c_upper <- 20
+
+```
+
+```{r exclude-qc-fail-participants}
+
+# Exclude the one participant that did not pay attention to instructions
+session_results_all_ptp <-
+        session_results_all_ptp %>%
+        filter(ptp != '609478fa9e5b4d075246cfaf') %>%
+        droplevels()
 
 ```
 
 
-# Separately for each participant:
+```{r create-long-form-accuracy-type}
 
-We have a total of 11 participants. One of them did very poorly because he/she did not follow instructions. Those data are excluded from subsequent analysis.
+session_results_all_ptp_long_accuracy <- 
+        session_results_all_ptp %>%
+        pivot_longer(cols = starts_with("correct_"),
+                     names_to = 'accuracy_type',
+                     values_to = 'accuracy_value') %>%
+        mutate(accuracy_type = as.factor(accuracy_type)) %>%
+        reorder_levels(accuracy_type, order = c(
+                'correct_exact',
+                'correct_one_square_away',
+                'correct_rad_21',
+                'correct_rad_42',
+                'correct_rad_63',
+                'correct_rad_84',
+                'correct_rad_105'
+        ))
+ 
+```
+
+# Do all the calculations
+
+Create a giant, long form data with dependent variables being performance on each of the 8 repetition of PAs. 
+Factors will include:
+- condition
+- accuracy_type: i.e. how wide is the accuracy box/radius
+- neighbor_status: is the dependent variable reflecting performance on the neighbor PAs, island PAs, or collapsed over them?
 
 ```{r order-of-conditions}
 
@@ -88,84 +122,194 @@ for (iPtp in as.vector(all_ptp)){
 
 ```
 
+```{r create-one-large-long-form-for-image-repetitions}
 
-```{r each-participant-separately, fig.width=15, fig.height=15, warning=FALSE, message=FALSE}
-
-
-## Plot performance separately for each participant ----------------------------------------
-
-# get the average performance across the targets, by repetition
-mean_by_rep <-
-        session_results_all_ptp %>%
+mean_by_rep_long <- 
+        session_results_all_ptp_long_accuracy %>%
         filter(!condition %in% c('practice','practice2')) %>%
         droplevels() %>%
-        group_by(ptp_trunk,condition,new_pa_img_row_number_across_sessions) %>%
-        summarize(correct_rad_63_mean = mean(correct_rad_63, na.rm = T),
-                  correct_rad_63_sd = sd(correct_rad_63, na.rm = T)) %>%
+        group_by(ptp_trunk,
+                 condition,
+                 new_pa_img_row_number_across_sessions,
+                 accuracy_type) %>%
+        summarize(correct_mean = mean(accuracy_value, na.rm = T),
+                  correct_sd = sd(accuracy_value, na.rm = T)) %>%
         ungroup()
 
 # Calculate mean for neighbor vs non neighbor
-mean_by_landmark_rep <-
-        session_results_all_ptp %>%
+mean_by_landmark_rep_long <-
+        session_results_all_ptp_long_accuracy %>%
         filter(!condition %in% c('practice','practice2')) %>%
-        group_by(ptp_trunk,condition,adjascent_neighbor,new_pa_img_row_number_across_sessions) %>%
-        summarize(correct_rad_63_mean = mean(correct_rad_63, na.rm = T),
-                  correct_rad_63_sd = sd(correct_rad_63, na.rm = T)) %>%
+        droplevels() %>%
+        group_by(ptp_trunk,
+                 condition,
+                 adjascent_neighbor,
+                 new_pa_img_row_number_across_sessions,
+                 accuracy_type) %>%
+        summarize(correct_mean = mean(accuracy_value, na.rm = T),
+                  correct_sd = sd(accuracy_value, na.rm = T)) %>%
         ungroup() %>%
-        mutate(correct_rad_63_mean = 
+        mutate(correct_mean = 
                        case_when(
                                is.na(adjascent_neighbor) ~ as.numeric(NA),
-                               TRUE ~ correct_rad_63_mean
+                               TRUE ~ correct_mean
                                ),
-               correct_rad_63_sd =
+               correct_sd =
                        case_when(
                                is.na(adjascent_neighbor) ~ as.numeric(NA),
-                               TRUE ~ correct_rad_63_sd
+                               TRUE ~ correct_sd
                        ),
                )
 
-fig <- mean_by_rep %>%
-        ggplot(aes(x=new_pa_img_row_number_across_sessions,y=correct_rad_63_mean)) +
-        # Add the average across toys
-        geom_point(data = mean_by_rep,
-                   aes(y=correct_rad_63_mean)) +
-        geom_line(data = mean_by_rep,
-                  aes(y=correct_rad_63_mean),
-                  size=2) +
+# Pivot into wide form, so we can later merge with the other data reflecting overall performance
+mean_by_landmark_rep_long_wide <- mean_by_landmark_rep_long %>%
+        filter(!condition %in% c('random_locations',
+                                 'no_schema')) %>%
+        droplevels() %>%
+        pivot_wider(id_cols = c(ptp_trunk,
+                                condition,
+                                new_pa_img_row_number_across_sessions,
+                                accuracy_type),
+                    values_from = c(correct_mean,
+                                    correct_sd),
+                    names_from = adjascent_neighbor,
+                    names_prefix = 'neighbor_'
+        )
 
-        # Add the average across landmark or not
-        geom_point(data = mean_by_landmark_rep, 
-                   aes(group=adjascent_neighbor,
-                       color=adjascent_neighbor,
-                       y=correct_rad_63_mean)) +
-        geom_line(data = mean_by_landmark_rep, 
-                  aes(group=adjascent_neighbor,
-                      color=adjascent_neighbor,
-                      y=correct_rad_63_mean),
-                  size=1) +
+# Now merge into one giant dataset
+mean_by_rep_all_types <- merge(mean_by_rep_long,
+                               mean_by_landmark_rep_long_wide,
+                               by = c('ptp_trunk',
+                                      'condition',
+                                      'new_pa_img_row_number_across_sessions',
+                                      'accuracy_type'),
+                               all = TRUE)
+
+# Pivot longer, but we have to do two columns, so break this up into two parts, then merge.
+mean_by_rep_all_types_long_1 <-
+        mean_by_rep_all_types %>%
+        select(-contains('sd')) %>% 
+        rename(both = correct_mean,
+               island = correct_mean_neighbor_FALSE,
+               neighbor = correct_mean_neighbor_TRUE) %>%
+        pivot_longer(cols = c('both','island','neighbor'),
+                     names_to = 'neighbor_status',
+                     values_to = 'correct_mean',
+                )
+mean_by_rep_all_types_long_2 <-
+        mean_by_rep_all_types %>%
+        select(-contains('mean')) %>%
+        rename(both = correct_sd,
+               island = correct_sd_neighbor_FALSE,
+               neighbor = correct_sd_neighbor_TRUE) %>%        
+        pivot_longer(cols = c('both','island','neighbor'),
+                     names_to = 'neighbor_status',
+                     values_to = 'correct_sd',
+                )
+mean_by_rep_all_types_long <-
+        merge(mean_by_rep_all_types_long_1,
+              mean_by_rep_all_types_long_2,
+              by = c('ptp_trunk',
+                     'condition',
+                     'new_pa_img_row_number_across_sessions',
+                     'accuracy_type',
+                     'neighbor_status'))
+
+```
+
+```{r all-learning-fits}
+
+
+
+
+```
+
+
+```{r plot, fig.width=10, fig.height=10, warning=FALSE, message=FALSE}
+
+for (iPart in unique(session_results_all_ptp_long_accuracy$ptp_trunk)[1]){
+        print(iPart)
         
+        fig_long_accu <- mean_by_rep_all_types_long %>%
+                filter(ptp_trunk == iPart) %>%
+                droplevels() %>%
+                ggplot(aes(x=new_pa_img_row_number_across_sessions,
+                           y=correct_mean,
+                           color=accuracy_type)) +
+                
+                # Add the average across toys
+                geom_point(aes(shape = neighbor_status)) +
+                geom_line(size=1,
+                          aes(linetype = neighbor_status)) +
+                
+                # # Add the average across landmark or not
+                # geom_point(data = mean_by_landmark_rep, 
+                #            aes(group=adjascent_neighbor,
+                #                color=adjascent_neighbor,
+                #                y=correct_rad_63_mean)) +
+                # geom_line(data = mean_by_landmark_rep, 
+                #           aes(group=adjascent_neighbor,
+                #               color=adjascent_neighbor,
+                #               y=correct_rad_63_mean),
+                #           size=1) +
+                # 
+                facet_grid(accuracy_type~condition) +
+                ggtitle(paste(iPart,'; ','Various Accuracy types',sep='')) +
+                theme(legend.position = 'top') +
+                xlab('Image repetition') +
+                scale_x_continuous(breaks=seq(1:8)) + 
+                geom_vline(xintercept = 4.5, linetype = 'dashed')
+        
+        print(fig_long_accu)
+
+}
+
+
+
+```
+
+```{r each-participant-correct-exact-one-square-63-rad, fig.width=10, fig.height=10, warning=FALSE, message=FALSE}
+
+
+fig_long_accu <- mean_by_rep_long %>%
+        filter(accuracy_type %in% c('correct_exact',
+                                    'correct_one_square_away',
+                                    'correct_rad_42',
+                                    'correct_rad_63')) %>%
+        droplevels() %>%
+        ggplot(aes(x=new_pa_img_row_number_across_sessions,
+                   y=correct_mean,
+                   color=accuracy_type)) +
+        
+        # Add the average across toys
+        geom_point() +
+        geom_line(size=1,
+                  aes(linetype = accuracy_type)) +
+        
+        # # Add the average across landmark or not
+        # geom_point(data = mean_by_landmark_rep, 
+        #            aes(group=adjascent_neighbor,
+        #                color=adjascent_neighbor,
+        #                y=correct_rad_63_mean)) +
+        # geom_line(data = mean_by_landmark_rep, 
+        #           aes(group=adjascent_neighbor,
+        #               color=adjascent_neighbor,
+        #               y=correct_rad_63_mean),
+        #           size=1) +
+        # 
         facet_grid(ptp_trunk~condition) +
-        ggtitle(paste('Accuracy type: 63px radius',sep='')) +
+        ggtitle(paste('Various Accuracy types',sep='')) +
         theme(legend.position = 'top') +
         xlab('Image repetition') +
         scale_x_continuous(breaks=seq(1:8)) + 
         geom_vline(xintercept = 4.5, linetype = 'dashed')
 
-print(fig)
+print(fig_long_accu)
+
 
 ```
 
 # Averaged across participants
-
-```{r exclude-qc-fail-participants}
-
-# Exclude the one participant that did not pay attention to instructions
-session_results_all_ptp <-
-        session_results_all_ptp %>%
-        filter(ptp != '609478fa9e5b4d075246cfaf') %>%
-        droplevels()
-
-```
 
 
 ```{r plot-averaged-over-participants, fig.width=15, fig.height=5, warning=FALSE, message=FALSE}
