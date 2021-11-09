@@ -51,7 +51,7 @@ session_results_all_ptp <- session_results_all_ptp %>%
 ```{r define-parameters-load-functions}
 
 # Load an external script which contains functions for estimating either just the learning rate, or also the asymptote
-source('./scripts/utils/functions_for_fitting_learning_curves.R')
+source('./scripts/utils/functions_for_fitting_learning_curves_old.R')
 
 # Create parameters as starting points for estimations
 a_start <- 0.5

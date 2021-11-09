@@ -1,4 +1,4 @@
-fit_learning_and_asymptote <- function(p,t,y,ret){
+fit_learning_and_asymptote <- function(p,t,y){
         # Description:
         # p: parameters. Vector of size 2, p[1] is the asymptote and p[2] is the learning rate
         # t: trials, usually seq(1,8)
@@ -14,16 +14,12 @@ fit_learning_and_asymptote <- function(p,t,y,ret){
         # Simplified further: y_hat = a*(1 - e^(-c*t))
         
         # Define the function:
-        #y_hat <- p[1]*(1-exp(-p[2]*(t-1)))
-        y_hat <- p[1] + (1 - exp(-p[2]*(t-1)))*(1-p[1])
+        y_hat <- p[1]*(1-exp(-p[2]*(t-1)))
         
         sse <- sum((y-y_hat)^2)
         
-#        return(list("sse"=sse,"fit"=y_hat)) # doesn't work with "optim"
-        if (ret=='fit') {return(y_hat)} 
-        else {return(sse)}
+        return(sse)
 }
-
 
 fit_learning_only <- function(p,t,y){
         # p: parameter to estimate. Just the learning rate. 
@@ -36,5 +32,15 @@ fit_learning_only <- function(p,t,y){
         # Given the above redefined and simplified formula: y_hat = a*(1-e^(-c*t))
         y_hat <- 1-exp(-p*(t-1))
         sse <- sum((y-y_hat)^2)
+        return(sse)
+}
+
+fit_learning_asymptote_and_intercept <- function(p,t,y){
+        
+        # Define the function:
+        y_hat <- (p[1]-p[3])*(1-exp(-p[2]*(t-1))) + p[3]
+        
+        sse <- sum((y-y_hat)^2)
+        
         return(sse)
 }
