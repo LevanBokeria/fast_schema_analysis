@@ -1,18 +1,5 @@
-fit_learning_and_asymptote <- function(p,t,y,ret){
-        # Description:
-        # p: parameters. Vector of size 2, p[1] is the asymptote and p[2] is the learning rate
-        # t: trials, usually seq(1,8)
-        # y: data
-        
-        # Using the general formula: y_hat = a - (1-intercept)*e^(-c*t)
-        
-        # The intercept is assumed to start at 0.
-        # But in this formula, if you change "a" the intercept changes too! 
-        # The only way of making sure the intercept stays at 0 is to redefine 
-        # (1-intercept) as being the same as "a".
-        # Then we get: y_hat = a - a * e^(-c*t)
-        # Simplified further: y_hat = a*(1 - e^(-c*t))
-        
+fit_learning_and_intercept <- function(p,t,y,ret){
+
         # Define the function:
         #y_hat <- p[1]*(1-exp(-p[2]*(t-1)))
         y_hat <- p[1] + (1 - exp(-p[2]*(t-1)))*(1-p[1])

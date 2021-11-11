@@ -62,6 +62,8 @@ a_lower <- 0
 a_upper <- 1
 c_lower <- 0
 c_upper <- 20
+i_lower <- 0
+i_upper <- 1
 
 ```
 
@@ -215,14 +217,222 @@ mean_by_rep_all_types_long <-
                      'accuracy_type',
                      'neighbor_status'))
 
+# Add 95% CI for each calculation
+
 ```
 
 ```{r all-learning-fits}
 
+learning_and_intercept_each_participant <-
+        mean_by_rep_all_types_long %>%
+        filter(!(condition %in% c('no_schema','random_locations') & 
+               neighbor_status %in% c('island','neighbor'))) %>%
+        group_by(ptp_trunk,
+                 condition,
+                 neighbor_status,
+                 accuracy_type) %>% 
+        do(as.data.frame(
+                optim(c(a_start,c_start),
+                      fit_learning_and_intercept,
+                      gr = NULL,
+                      seq(1,8),
+                      .$correct_mean,
+                      'sse',
+                      method = 'L-BFGS-B',
+                      lower = c(i_lower,c_lower),
+                      upper = c(i_upper,c_upper)
+                )) %>%
+                   mutate(id = row_number()) %>%
+                   pivot_wider(names_from = id,
+                               values_from = par,
+                               names_prefix = 'par_')) %>%
+        rename(sse = value,
+               n_iterations = counts,
+               i = par_1,
+               c = par_2) %>%
+        ungroup()
 
+# Add the predicted data to the dataframe
+learning_and_asymptote_across_participants_y_hat <-
+        learning_and_intercept_each_participant %>%
+        group_by(ptp_trunk,
+                 condition,
+                 neighbor_status,
+                 accuracy_type) %>% 
+        mutate(y_hat_i_c = list(fit_learning_and_intercept(c(i,c),
+                                                           seq(1:8),
+                                                           seq(1:8),
+                                                           'fit')),
+               new_pa_img_row_number_across_sessions = list(seq(1:8))) %>%
+        unnest(c(y_hat_i_c,
+                 new_pa_img_row_number_across_sessions)) %>% 
+        select(c(ptp_trunk,
+                 condition,
+                 neighbor_status,
+                 accuracy_type,
+                 y_hat_i_c,
+                 new_pa_img_row_number_across_sessions)) %>%
+        ungroup()
+
+mean_by_rep_all_types_long <- merge(mean_by_rep_all_types_long,
+                                    learning_and_asymptote_across_participants_y_hat,
+                                    by = c('ptp_trunk',
+                                           'condition',
+                                           'neighbor_status',
+                                           'accuracy_type',
+                                           'new_pa_img_row_number_across_sessions'),
+                                    all = TRUE)
 
 
 ```
+
+```{r dumb-measures-each-participant}
+last_two_reps_stats <-
+mean_by_rep_all_types_long %>%
+        filter(new_pa_img_row_number_across_sessions %in% c(7,8)) %>%
+        group_by(ptp_trunk,
+                 condition,
+                 neighbor_status,
+                 accuracy_type) %>%
+        summarise(last_two_mean = mean(correct_mean),
+                  last_two_sd   = sd(correct_sd)) %>%
+        ungroup()
+
+last_four_reps_stats <-
+mean_by_rep_all_types_long %>%
+        filter(new_pa_img_row_number_across_sessions %in% c(5,6,7,8)) %>%
+        group_by(ptp_trunk,
+                 condition,
+                 neighbor_status,
+                 accuracy_type) %>%
+        summarise(last_four_mean = mean(correct_mean),
+                  last_four_sd   = sd(correct_sd)) %>%
+        ungroup()
+
+sum_stats_each_participant <- merge(last_two_reps_stats,
+                                    last_four_reps_stats,
+                                    by = c('ptp_trunk',
+                                           'condition',
+                                           'neighbor_status',
+                                           'accuracy_type'))
+sum_stats_each_participant <- merge(sum_stats_each_participant,
+                                    learning_and_intercept_each_participant,
+                                    by = c('ptp_trunk',
+                                           'condition',
+                                           'neighbor_status',
+                                           'accuracy_type'),
+                                    all = TRUE)
+
+```
+
+```{r plot-dumb-measures-overall, fig.width=13, fig.height=4}
+
+sum_stats_each_participant %>%
+        filter(neighbor_status == 'both') %>%
+        droplevels() %>%
+        ggplot(aes(x=condition,
+                   y=last_two_mean)) +
+        geom_violin() +
+        geom_dotplot(binaxis = 'y',
+                     stackdir = 'center',
+                     stackratio = 1,
+                     dotsize = 1,
+                     fill = 'black',
+                     alpha = 0.2) +
+        geom_line(aes(group=ptp_trunk,
+                      color=ptp_trunk)) +
+        facet_wrap(~accuracy_type, nrow = 1) +
+        stat_summary(fun=mean, geom="point", shape=20, size=5, 
+                     color="blue", fill="blue") + 
+        stat_summary(fun.data = mean_cl_normal,
+                     geom = "errorbar",size=1,width=0.1,color='blue') +
+        theme(legend.position = '') +
+        theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) +
+        ggtitle('Overall, last 2 reps') 
+
+sum_stats_each_participant %>%
+        filter(neighbor_status == 'both') %>%
+        droplevels() %>%
+        ggplot(aes(x=condition,
+                   y=last_four_mean)) +
+        geom_violin() +
+        geom_dotplot(binaxis = 'y',
+                     stackdir = 'center',
+                     stackratio = 1,
+                     dotsize = 1,
+                     fill = 'black',
+                     alpha = 0.2) +
+        geom_line(aes(group=ptp_trunk,
+                      color=ptp_trunk)) +
+        facet_wrap(~accuracy_type, nrow = 1) +
+        stat_summary(fun=mean, geom="point", shape=20, size=5, 
+                     color="red", fill="red") + 
+        # stat_summary(fun.data = mean_cl_normal,
+        #              geom = "errorbar",size=1,width=0.1,color='red') +
+        theme(legend.position = '') +
+        theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) +
+        ggtitle('Overall, last 4 reps') 
+
+```
+
+
+```{r plot-dumb-measures-last-two-lm-non-lm, fig.width=12, fig.height=4}
+
+sum_stats_each_participant %>%
+        filter(neighbor_status != 'both',
+               !condition %in% c('random_locations','no_schema')) %>%
+        droplevels() %>%
+        pivot_wider(id_cols = c(ptp_trunk,
+                                condition,
+                                accuracy_type),
+                    names_from = neighbor_status,
+                    values_from = last_two_mean) %>% 
+        mutate(neighbor_diff = neighbor - island) %>%
+        ggplot(aes(x=condition,y=neighbor_diff)) +
+        geom_violin() +
+        # geom_jitter(width = 0.1, alpha = 0.2) +
+        geom_dotplot(binaxis='y', stackdir='center',
+                     stackratio=1, dotsize=1, fill="black") +        
+        geom_line(aes(group=ptp_trunk,
+                      color=ptp_trunk)) +
+        stat_summary(fun=mean, geom="point", shape=20, size=5, 
+                     color="blue", fill="blue") +         
+        facet_wrap(~accuracy_type, nrow = 1) +
+        ylab('Diff') + 
+        theme(legend.position = '') +
+        theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) +
+        ggtitle('Landmark minus non-landmark, last 2')
+
+sum_stats_each_participant %>%
+        filter(neighbor_status != 'both',
+               !condition %in% c('random_locations','no_schema')) %>%
+        droplevels() %>%
+        pivot_wider(id_cols = c(ptp_trunk,
+                                condition,
+                                accuracy_type),
+                    names_from = neighbor_status,
+                    values_from = last_four_mean) %>% 
+        mutate(neighbor_diff = neighbor - island) %>%
+        ggplot(aes(x=condition,y=neighbor_diff)) +
+        geom_violin() +
+        # geom_jitter(width = 0.1, alpha = 0.2) +
+        geom_dotplot(binaxis='y', stackdir='center',
+                     stackratio=1, dotsize=1, fill="black") +        
+        geom_line(aes(group=ptp_trunk,
+                      color=ptp_trunk)) +
+        stat_summary(fun=mean, geom="point", shape=20, size=5, 
+                     color="red", fill="red") +         
+        facet_wrap(~accuracy_type, nrow = 1) +
+        ylab('Diff') + 
+        theme(legend.position = '') +
+        theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) +
+        ggtitle('Landmark minus non-landmark, last 4')
+        
+        
+
+
+```
+
 
 
 ```{r plot, fig.width=10, fig.height=10, warning=FALSE, message=FALSE}
