@@ -135,8 +135,10 @@ mean_by_rep_long <-
                  new_pa_img_row_number_across_sessions,
                  accuracy_type) %>%
         summarize(correct_mean = mean(accuracy_value, na.rm = T),
-                  correct_sd = sd(accuracy_value, na.rm = T)) %>%
+                  correct_sd = sd(accuracy_value, na.rm = T),
+                  correct_n = n()) %>%
         ungroup()
+
 
 # Calculate mean for neighbor vs non neighbor
 mean_by_landmark_rep_long <-
@@ -149,19 +151,17 @@ mean_by_landmark_rep_long <-
                  new_pa_img_row_number_across_sessions,
                  accuracy_type) %>%
         summarize(correct_mean = mean(accuracy_value, na.rm = T),
-                  correct_sd = sd(accuracy_value, na.rm = T)) %>%
+                  correct_sd = sd(accuracy_value, na.rm = T),
+                  correct_n = as.numeric(n())) %>%
         ungroup() %>%
-        mutate(correct_mean = 
-                       case_when(
-                               is.na(adjascent_neighbor) ~ as.numeric(NA),
-                               TRUE ~ correct_mean
-                               ),
-               correct_sd =
-                       case_when(
-                               is.na(adjascent_neighbor) ~ as.numeric(NA),
-                               TRUE ~ correct_sd
-                       ),
-               )
+        mutate(across(c(correct_mean,
+                        correct_sd,
+                        correct_n),
+                      ~ case_when(
+                              is.na(adjascent_neighbor) ~ as.numeric(NA),
+                              TRUE ~ .
+                      )))
+
 
 # Pivot into wide form, so we can later merge with the other data reflecting overall performance
 mean_by_landmark_rep_long_wide <- mean_by_landmark_rep_long %>%
@@ -173,7 +173,8 @@ mean_by_landmark_rep_long_wide <- mean_by_landmark_rep_long %>%
                                 new_pa_img_row_number_across_sessions,
                                 accuracy_type),
                     values_from = c(correct_mean,
-                                    correct_sd),
+                                    correct_sd,
+                                    correct_n),
                     names_from = adjascent_neighbor,
                     names_prefix = 'neighbor_'
         )
@@ -190,7 +191,7 @@ mean_by_rep_all_types <- merge(mean_by_rep_long,
 # Pivot longer, but we have to do two columns, so break this up into two parts, then merge.
 mean_by_rep_all_types_long_1 <-
         mean_by_rep_all_types %>%
-        select(-contains('sd')) %>% 
+        select(-contains(c('sd','correct_n'))) %>% 
         rename(both = correct_mean,
                island = correct_mean_neighbor_FALSE,
                neighbor = correct_mean_neighbor_TRUE) %>%
@@ -200,7 +201,7 @@ mean_by_rep_all_types_long_1 <-
                 )
 mean_by_rep_all_types_long_2 <-
         mean_by_rep_all_types %>%
-        select(-contains('mean')) %>%
+        select(-contains(c('mean','correct_n'))) %>%
         rename(both = correct_sd,
                island = correct_sd_neighbor_FALSE,
                neighbor = correct_sd_neighbor_TRUE) %>%        
@@ -208,16 +209,41 @@ mean_by_rep_all_types_long_2 <-
                      names_to = 'neighbor_status',
                      values_to = 'correct_sd',
                 )
+
+mean_by_rep_all_types_long_3 <-
+        mean_by_rep_all_types %>%
+        select(-contains(c('mean','sd'))) %>%
+        rename(both = correct_n,
+               island = correct_n_neighbor_FALSE,
+               neighbor = correct_n_neighbor_TRUE) %>%        
+        pivot_longer(cols = c('both','island','neighbor'),
+                     names_to = 'neighbor_status',
+                     values_to = 'n',
+                )
+
 mean_by_rep_all_types_long <-
         merge(mean_by_rep_all_types_long_1,
-              mean_by_rep_all_types_long_2,
+              
+        merge(mean_by_rep_all_types_long_2,
+              mean_by_rep_all_types_long_3,
               by = c('ptp_trunk',
+                     'condition',
+                     'new_pa_img_row_number_across_sessions',
+                     'accuracy_type',
+                     'neighbor_status')),
+        
+        by = c('ptp_trunk',
                      'condition',
                      'new_pa_img_row_number_across_sessions',
                      'accuracy_type',
                      'neighbor_status'))
 
+
 # Add 95% CI for each calculation
+mean_by_rep_all_types_long <- 
+        mean_by_rep_all_types_long %>%
+        mutate(ci_95 = 1.96*correct_sd/sqrt(correct_n))
+
 
 ```
 
