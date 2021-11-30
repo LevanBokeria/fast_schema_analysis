@@ -815,6 +815,68 @@ Conclusions from this section:
 - Use correct_exact and correct_one_square_away measures.
 - Landmark-vs-non-landmark doesn't seem to show any difference on the plots.
 
+# Scatter plots of dependent variables
+
+## Learning rates
+
+```{r scatter-plots-learning-rates, fig.width=8}
+
+sum_stats_each_participant %>%
+        filter(neighbor_status == 'both',
+               accuracy_type %in% c('correct_exact','correct_one_square_away')) %>%
+        droplevels() %>%
+        ggplot(aes(x=condition,
+                   y=c,
+                   fill=condition)) +
+        geom_violin(alpha=0.5) +
+        geom_boxplot(width=0.2,
+                     alpha=0.2) +
+        geom_point(alpha=0.2) +
+        geom_line(aes(group=ptp_trunk),
+                  alpha=0.2) +
+        stat_summary(fun=mean, 
+                     geom="point", 
+                     shape=20, 
+                     size=5, 
+                     color="black",
+                     fill="black") +         
+        facet_wrap(~accuracy_type) +
+        theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) +
+        ylab('Learning Rate C')
+
+
+```
+
+
+## Last two reps
+
+```{r scatter-plots-last-two-reps, fig.width=8}
+
+sum_stats_each_participant %>%
+        filter(neighbor_status == 'both',
+               accuracy_type %in% c('correct_exact','correct_one_square_away')) %>%
+        droplevels() %>%
+        ggplot(aes(x=condition,
+                   y=last_two_mean,
+                   fill=condition)) +
+        geom_violin(alpha=0.5) +
+        geom_boxplot(width=0.2,
+                     alpha=0.2) +
+        geom_point(alpha=0.2) +
+        geom_line(aes(group=ptp_trunk),
+                  alpha=0.2) +
+        stat_summary(fun=mean, 
+                     geom="point", 
+                     shape=20, 
+                     size=5, 
+                     color="black",
+                     fill="black") +         
+        facet_wrap(~accuracy_type) +
+        theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) +
+        ylab('Last two reps')
+
+
+```
 
 # Examine basic stats:
 
