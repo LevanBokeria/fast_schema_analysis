@@ -248,6 +248,12 @@ mean_by_rep_all_types_long <-
         mutate(ci_95 = 1.96*correct_sd/sqrt(n))
 
 
+
+# Clean the extra variables
+rm(mean_by_rep_all_types_long_1)
+rm(mean_by_rep_all_types_long_2)
+rm(mean_by_rep_all_types_long_3)
+
 ```
 
 ## Fit the learning curve, with intercept and learning rate
@@ -377,8 +383,6 @@ We can see that, correct_exact is lowest, then comes correct_rad_42, and the cor
 
 ```{r raw-learning-curves-diff-accu-types, fig.width=10, fig.height=12, warning=FALSE, message=FALSE}
 
-# NOT CORRECT, USING THE WRONG DATAFRAME
-
 fig_long_accu <- mean_by_rep_all_types_long %>%
         filter(accuracy_type %in% c('correct_exact',
                                     'correct_one_square_away',
@@ -429,7 +433,7 @@ For the convergence status:
 
 Only plot correct_exact and then correct_one_square_away. Two separate plots for each.
 
-Looking at those participants where the convergence failed, its unclear why it happens. For some of the failure cases, the data doesn't look messy or weird in any way. For example, participant '6047ae5...' random_locations condition.
+Looking at those participants where the convergence failed, its unclear why it happens. For some of the failure cases, the data doesn't look messy or weird in any way. For example, participant '6047ae5...' random_locations condition, one_square_away measure.
 
 ```{r raw-learning-curves-and-fits, fig.width=13, fig.height=12}
 
@@ -462,7 +466,7 @@ fig_each_ptp <- mean_by_rep_all_types_long %>%
                 accuracy_type %in% c('correct_exact'),
                 neighbor_status == 'both'
                 ),
-                aes(x=3.5,
+                aes(x=4,
                     y=0.65,
                     label = paste('conv=',
                                   as.character(convergence),
@@ -534,6 +538,11 @@ print(fig_each_ptp)
 ```
 
 ## Learning curves: Landmark vs non-landmark
+
+Again, two plots for the two dependent variables: "exact correct" and "correct one square away".
+
+We can see convergence in all but 1 case: 5d776e2... landmark_schema, one_square_away.
+
 
 ```{r landmark-raw-learning-curves-and-fits, fig.width=10, fig.height=12}
 
@@ -643,7 +652,6 @@ print(fig_each_ptp_lm)
 
 
 ```
-
 
 
 ## Rough measures
@@ -807,7 +815,172 @@ Conclusions from this section:
 - Use correct_exact and correct_one_square_away measures.
 - Landmark-vs-non-landmark doesn't seem to show any difference on the plots.
 
-# Other plots?
+
+# Examine basic stats:
+
+## Landmark > non-landmark
+
+### Learning Rate
+
+How many participants had the learning rate larger for landmark-neighbors vs non-neighbors?
+
+```{r basic-stats-landmark-learning-rates, fig.width=8, fig.height=3}
+
+# Count of learning rate being more
+sum_stats_each_participant %>%
+        filter(neighbor_status != 'both',
+               !condition %in% c('random_locations',
+                                 'no_schema'),
+               accuracy_type %in% c('correct_exact','correct_one_square_away')) %>%
+        droplevels() %>% 
+        pivot_wider(id_cols = c(ptp_trunk,
+                                condition,
+                                accuracy_type),
+                    names_from = neighbor_status,
+                    values_from = c) %>% 
+        mutate(neighbor_more = neighbor > island,
+               neighbor_same = neighbor == island,
+               neighbor_less = neighbor < island) %>%
+        group_by(condition,
+                 accuracy_type) %>%
+        summarise(across(c(neighbor_more,
+                           neighbor_same,
+                           neighbor_less),sum),
+                  total_n = n()) %>%
+        pivot_longer(cols = starts_with('neighbor'),
+                     names_to = 'stat_type',
+                     values_to = 'count') %>% 
+        ggplot(aes(x=condition, y=count,fill = stat_type)) +
+        geom_bar(stat="identity",position=position_dodge()) +
+        scale_y_continuous(breaks=seq(0:10)) +
+        coord_cartesian(ylim = c(0,10)) +
+        facet_wrap(~accuracy_type) +
+        ggtitle('Learning Rate')
+
+```
+
+### Last two reps
+
+Same for last two reps
+
+```{r basic-stats-landmark-last-two-reps, fig.width=8, fig.height=4}
+
+# Count of last two reps being more
+sum_stats_each_participant %>%
+        filter(neighbor_status != 'both',
+               !condition %in% c('random_locations',
+                                 'no_schema'),
+               accuracy_type %in% c('correct_exact','correct_one_square_away')) %>%
+        droplevels() %>% 
+        pivot_wider(id_cols = c(ptp_trunk,
+                                condition,
+                                accuracy_type),
+                    names_from = neighbor_status,
+                    values_from = last_two_mean) %>% 
+        mutate(neighbor_more = neighbor > island,
+               neighbor_same = neighbor == island,
+               neighbor_less = neighbor < island) %>%
+        group_by(condition,
+                 accuracy_type) %>%
+        summarise(across(c(neighbor_more,
+                           neighbor_same,
+                           neighbor_less),sum),
+                  total_n = n()) %>%
+        pivot_longer(cols = starts_with('neighbor'),
+                     names_to = 'stat_type',
+                     values_to = 'count') %>% 
+        ggplot(aes(x=condition, y=count,fill = stat_type)) +
+        geom_bar(stat="identity",position=position_dodge()) +
+        scale_y_continuous(breaks=seq(0:10)) +
+        coord_cartesian(ylim = c(0,10)) +
+        facet_wrap(~accuracy_type) +
+        ggtitle('Last two reps')
+
+
+```
+
+## Comparing conditions to each other
+
+Now count for how many participants were the dependent variables better for comparison of different conditions
+
+### Learning Rate
+
+```{r basic-stats-conditions-learning-rates, fig.width=8, fig.height=4}
+
+# Count of learning rate being more
+sum_stats_each_participant %>%
+        filter(neighbor_status == 'both',
+               accuracy_type %in% c('correct_exact','correct_one_square_away')) %>%
+        droplevels() %>%
+        pivot_wider(id_cols = c(ptp_trunk,
+                                accuracy_type,
+                                neighbor_status),
+                    names_from = condition,
+                    values_from = c) %>% 
+        mutate(schema_c_more_than_schema_ic = schema_c > schema_ic,
+               schema_c_less_than_schema_ic = schema_c < schema_ic,
+               schema_c_same_as_schema_ic = schema_c == schema_ic,
+               schema_c_more_than_no_schema = schema_c > no_schema,
+               schema_c_less_than_no_schema = schema_c < no_schema,
+               schema_c_same_as_no_schema = schema_c == no_schema) %>% 
+        select(-c('schema_c','schema_ic','random_locations','landmark_schema','no_schema')) %>% 
+        group_by(accuracy_type) %>%
+        summarise(across(starts_with('schema_'),sum),
+                  total_n = n()) %>%
+        pivot_longer(cols = starts_with('schema_c'),
+                     names_to = 'stat_type',
+                     values_to = 'count') %>% 
+        ggplot(aes(x=stat_type, y=count,fill = stat_type)) +
+        geom_bar(stat="identity",position=position_dodge()) +
+        scale_y_continuous(breaks=seq(0:10)) +
+        coord_cartesian(ylim = c(0,10)) +
+        facet_wrap(~accuracy_type) +
+        ggtitle('Learning Rate') +
+        theme(axis.text.x = element_blank())
+
+
+```
+
+
+### Last two reps
+
+```{r basic-stats-conditions-last-two-reps, fig.width=8, fig.height=4}
+
+# Count of learning rate being more
+sum_stats_each_participant %>%
+        filter(neighbor_status == 'both',
+               accuracy_type %in% c('correct_exact','correct_one_square_away')) %>%
+        droplevels() %>%
+        pivot_wider(id_cols = c(ptp_trunk,
+                                accuracy_type,
+                                neighbor_status),
+                    names_from = condition,
+                    values_from = last_two_mean) %>% 
+        mutate(schema_c_more_than_schema_ic = schema_c > schema_ic,
+               schema_c_less_than_schema_ic = schema_c < schema_ic,
+               schema_c_same_as_schema_ic = schema_c == schema_ic,
+               schema_c_more_than_no_schema = schema_c > no_schema,
+               schema_c_less_than_no_schema = schema_c < no_schema,
+               schema_c_same_as_no_schema = schema_c == no_schema) %>% 
+        select(-c('schema_c','schema_ic','random_locations','landmark_schema','no_schema')) %>% 
+        group_by(accuracy_type) %>%
+        summarise(across(starts_with('schema_'),sum),
+                  total_n = n()) %>%
+        pivot_longer(cols = starts_with('schema_c'),
+                     names_to = 'stat_type',
+                     values_to = 'count') %>% 
+        ggplot(aes(x=stat_type, y=count,fill = stat_type)) +
+        geom_bar(stat="identity",position=position_dodge()) +
+        scale_y_continuous(breaks=seq(0:10)) +
+        coord_cartesian(ylim = c(0,10)) +
+        facet_wrap(~accuracy_type) +
+        ggtitle('Last two reps') +
+        theme(axis.text.x = element_blank())
+
+
+```
+
+# Other plots? NOT USED
 
 ```{r plot, fig.width=10, fig.height=10, warning=FALSE, message=FALSE}
 
