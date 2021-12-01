@@ -9,7 +9,7 @@ output:
 knitr::opts_chunk$set(echo = FALSE)
 ```
 
-# Setup
+# Setup: load data, define variables, etc
 
 ```{r load-data-define-variables}
 
@@ -56,12 +56,10 @@ session_results_all_ptp <- session_results_all_ptp %>%
 source('./scripts/utils/functions_for_fitting_learning_curves.R')
 
 # Create parameters as starting points for estimations
-a_start <- 0.5
+i_start <- 0.5
 c_start <- 0.1
 
 # Create lower and upper bound constraints on the asymptote and learning rate
-a_lower <- 0
-a_upper <- 1
 c_lower <- 0
 c_upper <- 20
 i_lower <- 0
@@ -104,6 +102,7 @@ session_results_all_ptp_long_accuracy <-
 
 Create a giant, long form data with dependent variables being performance on each of the 8 repetition of PAs. 
 Factors will include:
+
 - condition
 - accuracy_type: i.e. how wide is the accuracy box/radius
 - neighbor_status: is the dependent variable reflecting performance on the neighbor PAs, island PAs, or collapsed over them?
@@ -269,7 +268,7 @@ learning_and_intercept_each_participant <-
                  neighbor_status,
                  accuracy_type) %>% 
         do(as.data.frame(
-                optim(c(a_start,c_start),
+                optim(c(i_start,c_start),
                       fit_learning_and_intercept,
                       gr = NULL,
                       seq(1,8),
@@ -366,7 +365,7 @@ sum_stats_each_participant <- merge(sum_stats_each_participant,
 
 ```
 
-# Plots
+# Learning curve plots
 
 ## Raw learning curves, without the fitted data
 
@@ -380,6 +379,8 @@ Below, I plot only:
 - correct_one_square_away
 
 We can see that, correct_exact is lowest, then comes correct_rad_42, and the correct_rad_63 and correct_one_square_away are almost exactly overlapping.
+
+I suggest we use the correct_exact and the correct_one_square_away measures.
 
 ```{r raw-learning-curves-diff-accu-types, fig.width=10, fig.height=12, warning=FALSE, message=FALSE}
 
@@ -425,13 +426,13 @@ print(fig_long_accu)
 
 ## Raw learning curves + learning fits
 
-So, overlay the curve fits, with annotated into about the intercept value, learning rate value, and convergence status.
+So, overlay the curve fits, with annotated info about the intercept value, learning rate value, and convergence status.
 For the convergence status:
 
 - 0 means success
 - 52 means error.
 
-Only plot correct_exact and then correct_one_square_away. Two separate plots for each.
+Only plot correct_exact and then correct_one_square_away. Two separate panels of plots for each.
 
 Looking at those participants where the convergence failed, its unclear why it happens. For some of the failure cases, the data doesn't look messy or weird in any way. For example, participant '6047ae5...' random_locations condition, one_square_away measure.
 
@@ -539,7 +540,10 @@ print(fig_each_ptp)
 
 ## Learning curves: Landmark vs non-landmark
 
-Again, two plots for the two dependent variables: "exact correct" and "correct one square away".
+Neighbor PAs are coded as "neighbor".
+Non-neighbor PAs are coded as "island".
+
+Again, two panels of plots for the two dependent variables: "exact correct" and "correct one square away".
 
 We can see convergence in all but 1 case: 5d776e2... landmark_schema, one_square_away.
 
@@ -654,13 +658,15 @@ print(fig_each_ptp_lm)
 ```
 
 
-## Rough measures
+
+
+# Scatter plots of dependent variables:
+
+## Rough measures: last 2 reps and last 4 reps
+
+### Over all trials:
 
 I think the last 2 reps is a better dependent variable, because it captures better the "final" state of learning.
-
-Correct_one_square_away seems to be almost equivalent to correct_rad_63
-
-I suggest we use the correct_exact and the correct_one_square_away measures.
 
 ```{r plot-rough-measures-overall, fig.width=13, fig.height=4}
 
@@ -743,11 +749,12 @@ sum_stats_each_participant %>%
 
 ```
 
-### Landmak vs Non-landmark
+### Island vs Neighbor:
 
 
 ```{r plot-rough-measures-last-two-lm-non-lm, fig.width=12, fig.height=4}
 
+# Last 2
 sum_stats_each_participant %>%
         filter(neighbor_status != 'both',
                !condition %in% c('random_locations','no_schema')) %>%
@@ -776,6 +783,7 @@ sum_stats_each_participant %>%
         theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) +
         ggtitle('Landmark minus non-landmark, last 2')
 
+# Last 4
 sum_stats_each_participant %>%
         filter(neighbor_status != 'both',
                !condition %in% c('random_locations','no_schema')) %>%
@@ -803,9 +811,6 @@ sum_stats_each_participant %>%
         theme(legend.position = '') +
         theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) +
         ggtitle('Landmark minus non-landmark, last 4')
-        
-        
-
 
 ```
 
@@ -813,11 +818,14 @@ Conclusions from this section:
 
 - Use the average of last 2 reps as the "rough" measure of learning.
 - Use correct_exact and correct_one_square_away measures.
-- Landmark-vs-non-landmark doesn't seem to show any difference on the plots.
+- Landmark-vs-non-landmark doesn't seem to show any strong differences on the plots.
 
-# Scatter plots of dependent variables
 
-## Learning rates
+## Learning rates:
+
+### Over all trials:
+
+We see reasonable values:
 
 ```{r scatter-plots-learning-rates, fig.width=8}
 
@@ -844,20 +852,13 @@ sum_stats_each_participant %>%
         theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) +
         ylab('Learning Rate C')
 
-
-```
-
-
-## Last two reps
-
-```{r scatter-plots-last-two-reps, fig.width=8}
-
+# Zoom for correct_exact
 sum_stats_each_participant %>%
         filter(neighbor_status == 'both',
-               accuracy_type %in% c('correct_exact','correct_one_square_away')) %>%
+               accuracy_type %in% c('correct_exact')) %>%
         droplevels() %>%
         ggplot(aes(x=condition,
-                   y=last_two_mean,
+                   y=c,
                    fill=condition)) +
         geom_violin(alpha=0.5) +
         geom_boxplot(width=0.2,
@@ -871,10 +872,136 @@ sum_stats_each_participant %>%
                      size=5, 
                      color="black",
                      fill="black") +         
-        facet_wrap(~accuracy_type) +
         theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) +
-        ylab('Last two reps')
+        ylab('Learning Rate C') +
+        ggtitle('Correct Exact, separate plot')
 
+
+```
+
+### Island vs Neighbor:
+
+First, plot the island and neighbor values on separate plots:
+
+We see that for correct_one_square_away we get some "outlier" learning rate parameter estimates.
+
+```{r scatter-plots-learning-rates-landmark, fig.width=8, fig.height=6}
+
+sum_stats_each_participant %>%
+        filter(neighbor_status != 'both',
+               accuracy_type %in% c('correct_exact'),
+               !condition %in% c('random_locations','no_schema')) %>%
+        droplevels() %>%
+        ggplot(aes(x=condition,
+                   y=c,
+                   fill=condition)) +
+        geom_violin(alpha=0.5) +
+        geom_boxplot(width=0.2,
+                     alpha=0.2) +
+        geom_point(alpha=0.2) +
+        geom_line(aes(group=ptp_trunk),
+                  alpha=0.2) +
+        stat_summary(fun=mean, 
+                     geom="point", 
+                     shape=20, 
+                     size=5, 
+                     color="black",
+                     fill="black") +         
+        facet_grid(~accuracy_type+neighbor_status) +
+        theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) +
+        ylab('Learning Rate C')
+
+sum_stats_each_participant %>%
+        filter(neighbor_status != 'both',
+               accuracy_type %in% c('correct_one_square_away'),
+               !condition %in% c('random_locations','no_schema')) %>%
+        droplevels() %>%
+        ggplot(aes(x=condition,
+                   y=c,
+                   fill=condition)) +
+        geom_violin(alpha=0.5) +
+        geom_boxplot(width=0.2,
+                     alpha=0.2) +
+        geom_point(alpha=0.2) +
+        geom_line(aes(group=ptp_trunk),
+                  alpha=0.2) +
+        stat_summary(fun=mean, 
+                     geom="point", 
+                     shape=20, 
+                     size=5, 
+                     color="black",
+                     fill="black") +         
+        facet_grid(~accuracy_type+neighbor_status) +
+        theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) +
+        ylab('Learning Rate C')
+
+```
+
+Plot the difference values:
+
+```{r learning-rates-difference-neighbor-island, fig.width=5, fig.height=4}
+
+# Learning rates
+sum_stats_each_participant %>%
+        filter(neighbor_status != 'both',
+               !condition %in% c('random_locations','no_schema'),
+               accuracy_type %in% c('correct_one_square_away')) %>%
+        droplevels() %>%
+        pivot_wider(id_cols = c(ptp_trunk,
+                                condition,
+                                accuracy_type),
+                    names_from = neighbor_status,
+                    values_from = c) %>% 
+        mutate(neighbor_diff = neighbor - island) %>% 
+        ggplot(aes(x=condition,y=neighbor_diff)) +
+        geom_violin() +
+        # geom_jitter(width = 0.1, alpha = 0.2) +
+        # geom_dotplot(binaxis='y', stackdir='center',
+        #              stackratio=1, dotsize=0.3, fill="black",
+        #              alpha=0.3) +       
+        geom_point(alpha=0.3) +
+        geom_line(aes(group=ptp_trunk,
+                      color=ptp_trunk)) +
+        stat_summary(fun=mean, geom="point", shape=20, size=5,
+                     color="purple", fill="purple") +
+        stat_summary(fun.data = mean_cl_normal,
+                     geom = "errorbar",size=1,width=0.1,color='purple') +
+        facet_wrap(~accuracy_type, nrow = 1) +
+        ylab('Diff') + 
+        theme(legend.position = '') +
+        theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) +
+        ggtitle('Landmark minus non-landmark, learning rate')
+
+# Learning rates
+sum_stats_each_participant %>%
+        filter(neighbor_status != 'both',
+               !condition %in% c('random_locations','no_schema'),
+               accuracy_type %in% c('correct_exact')) %>%
+        droplevels() %>%
+        pivot_wider(id_cols = c(ptp_trunk,
+                                condition,
+                                accuracy_type),
+                    names_from = neighbor_status,
+                    values_from = c) %>% 
+        mutate(neighbor_diff = neighbor - island) %>% 
+        ggplot(aes(x=condition,y=neighbor_diff)) +
+        geom_violin() +
+        # geom_jitter(width = 0.1, alpha = 0.2) +
+        # geom_dotplot(binaxis='y', stackdir='center',
+        #              stackratio=1, dotsize=0.3, fill="black",
+        #              alpha=0.3) +       
+        geom_point(alpha=0.3) +
+        geom_line(aes(group=ptp_trunk,
+                      color=ptp_trunk)) +
+        stat_summary(fun=mean, geom="point", shape=20, size=5,
+                     color="purple", fill="purple") +
+        stat_summary(fun.data = mean_cl_normal,
+                     geom = "errorbar",size=1,width=0.1,color='purple') +
+        facet_wrap(~accuracy_type, nrow = 1) +
+        ylab('Diff') + 
+        theme(legend.position = '') +
+        theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) +
+        ggtitle('Landmark minus non-landmark, learning rate')
 
 ```
 
@@ -1038,51 +1165,6 @@ sum_stats_each_participant %>%
         facet_wrap(~accuracy_type) +
         ggtitle('Last two reps') +
         theme(axis.text.x = element_blank())
-
-
-```
-
-# Other plots? NOT USED
-
-```{r plot, fig.width=10, fig.height=10, warning=FALSE, message=FALSE}
-
-for (iPart in unique(session_results_all_ptp_long_accuracy$ptp_trunk)[1]){
-        print(iPart)
-        
-        fig_long_accu <- mean_by_rep_all_types_long %>%
-                filter(ptp_trunk == iPart) %>%
-                droplevels() %>%
-                ggplot(aes(x=new_pa_img_row_number_across_sessions,
-                           y=correct_mean,
-                           color=accuracy_type)) +
-                
-                # Add the average across toys
-                geom_point(aes(shape = neighbor_status)) +
-                geom_line(size=1,
-                          aes(linetype = neighbor_status)) +
-                
-                # # Add the average across landmark or not
-                # geom_point(data = mean_by_landmark_rep, 
-                #            aes(group=adjascent_neighbor,
-                #                color=adjascent_neighbor,
-                #                y=correct_rad_63_mean)) +
-                # geom_line(data = mean_by_landmark_rep, 
-                #           aes(group=adjascent_neighbor,
-                #               color=adjascent_neighbor,
-                #               y=correct_rad_63_mean),
-                #           size=1) +
-                # 
-                facet_grid(accuracy_type~condition) +
-                ggtitle(paste(iPart,'; ','Various Accuracy types',sep='')) +
-                theme(legend.position = 'top') +
-                xlab('Image repetition') +
-                scale_x_continuous(breaks=seq(1:8)) + 
-                geom_vline(xintercept = 4.5, linetype = 'dashed')
-        
-        print(fig_long_accu)
-
-}
-
 
 
 ```
