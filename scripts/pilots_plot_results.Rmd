@@ -761,6 +761,7 @@ sum_stats_each_participant %>%
 
 
 ```
+
 ### Which is more Gaussian?
 
 Conclusion: no drastic difference.
@@ -960,7 +961,8 @@ sum_stats_each_participant %>%
                      fill="black") +         
         facet_wrap(~accuracy_type) +
         theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) +
-        ylab('Log C')
+        ylab('Log C') +
+        ggtitle('Log C')
 
 # Zoom for correct_exact
 # sum_stats_each_participant %>%
@@ -1068,7 +1070,8 @@ sum_stats_each_participant %>%
                      fill="black") +         
         facet_grid(~accuracy_type+condition) +
         theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) +
-        ylab('Log C')
+        ylab('Log C') +
+        ggtitle('Log C')
 
 sum_stats_each_participant %>%
         filter(neighbor_status != 'both',
@@ -1092,7 +1095,8 @@ sum_stats_each_participant %>%
                      fill="black") +         
         facet_grid(~accuracy_type+condition) +
         theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) +
-        ylab('Log C')
+        ylab('Log C') +
+        ggtitle('Log C')
 
 ```
 
@@ -1310,45 +1314,85 @@ sum_stats_each_participant %>%
 
 
 ```
+### Last four reps
 
-## Comparing conditions to each other
+Same for last four reps
 
-Now count for how many participants were the dependent variables better for comparison of different conditions
+```{r basic-stats-landmark-last-four-reps, fig.width=8, fig.height=4}
 
-### Learning Rate
-
-```{r basic-stats-conditions-learning-rates, fig.width=8, fig.height=4}
-
-# Count of learning rate being more
+# Count of last two reps being more
 sum_stats_each_participant %>%
-        filter(neighbor_status == 'both',
+        filter(neighbor_status != 'both',
+               !condition %in% c('random_locations',
+                                 'no_schema'),
                accuracy_type %in% c('correct_exact','correct_one_square_away')) %>%
-        droplevels() %>%
+        droplevels() %>% 
         pivot_wider(id_cols = c(ptp_trunk,
-                                accuracy_type,
-                                neighbor_status),
-                    names_from = condition,
-                    values_from = c) %>% 
-        mutate(schema_c_more_than_schema_ic = schema_c > schema_ic,
-               schema_c_less_than_schema_ic = schema_c < schema_ic,
-               schema_c_same_as_schema_ic = schema_c == schema_ic,
-               schema_c_more_than_no_schema = schema_c > no_schema,
-               schema_c_less_than_no_schema = schema_c < no_schema,
-               schema_c_same_as_no_schema = schema_c == no_schema) %>% 
-        select(-c('schema_c','schema_ic','random_locations','landmark_schema','no_schema')) %>% 
-        group_by(accuracy_type) %>%
-        summarise(across(starts_with('schema_'),sum),
+                                condition,
+                                accuracy_type),
+                    names_from = neighbor_status,
+                    values_from = last_four_mean) %>% 
+        mutate(neighbor_more = neighbor > island,
+               neighbor_same = neighbor == island,
+               neighbor_less = neighbor < island) %>%
+        group_by(condition,
+                 accuracy_type) %>%
+        summarise(across(c(neighbor_more,
+                           neighbor_same,
+                           neighbor_less),sum),
                   total_n = n()) %>%
-        pivot_longer(cols = starts_with('schema_c'),
+        pivot_longer(cols = starts_with('neighbor'),
                      names_to = 'stat_type',
                      values_to = 'count') %>% 
-        ggplot(aes(x=stat_type, y=count,fill = stat_type)) +
+        ggplot(aes(x=condition, y=count,fill = stat_type)) +
         geom_bar(stat="identity",position=position_dodge()) +
         scale_y_continuous(breaks=seq(0:10)) +
         coord_cartesian(ylim = c(0,10)) +
         facet_wrap(~accuracy_type) +
-        ggtitle('Learning Rate') +
-        theme(axis.text.x = element_blank())
+        ggtitle('Last four reps')
+
+
+```
+
+
+<!-- ## Comparing conditions to each other -->
+
+<!-- Now count for how many participants were the dependent variables better for comparison of different conditions -->
+
+<!-- ### Learning Rate -->
+
+```{r basic-stats-conditions-learning-rates, fig.width=8, fig.height=4}
+
+# Count of learning rate being more
+# sum_stats_each_participant %>%
+#         filter(neighbor_status == 'both',
+#                accuracy_type %in% c('correct_exact','correct_one_square_away')) %>%
+#         droplevels() %>%
+#         pivot_wider(id_cols = c(ptp_trunk,
+#                                 accuracy_type,
+#                                 neighbor_status),
+#                     names_from = condition,
+#                     values_from = c) %>% 
+#         mutate(schema_c_more_than_schema_ic = schema_c > schema_ic,
+#                schema_c_less_than_schema_ic = schema_c < schema_ic,
+#                schema_c_same_as_schema_ic = schema_c == schema_ic,
+#                schema_c_more_than_no_schema = schema_c > no_schema,
+#                schema_c_less_than_no_schema = schema_c < no_schema,
+#                schema_c_same_as_no_schema = schema_c == no_schema) %>% 
+#         select(-c('schema_c','schema_ic','random_locations','landmark_schema','no_schema')) %>% 
+#         group_by(accuracy_type) %>%
+#         summarise(across(starts_with('schema_'),sum),
+#                   total_n = n()) %>%
+#         pivot_longer(cols = starts_with('schema_c'),
+#                      names_to = 'stat_type',
+#                      values_to = 'count') %>% 
+#         ggplot(aes(x=stat_type, y=count,fill = stat_type)) +
+#         geom_bar(stat="identity",position=position_dodge()) +
+#         scale_y_continuous(breaks=seq(0:10)) +
+#         coord_cartesian(ylim = c(0,10)) +
+#         facet_wrap(~accuracy_type) +
+#         ggtitle('Learning Rate') +
+#         theme(axis.text.x = element_blank())
 
 
 ```
@@ -1359,35 +1403,35 @@ sum_stats_each_participant %>%
 ```{r basic-stats-conditions-last-two-reps, fig.width=8, fig.height=4}
 
 # Count of learning rate being more
-sum_stats_each_participant %>%
-        filter(neighbor_status == 'both',
-               accuracy_type %in% c('correct_exact','correct_one_square_away')) %>%
-        droplevels() %>%
-        pivot_wider(id_cols = c(ptp_trunk,
-                                accuracy_type,
-                                neighbor_status),
-                    names_from = condition,
-                    values_from = last_two_mean) %>% 
-        mutate(schema_c_more_than_schema_ic = schema_c > schema_ic,
-               schema_c_less_than_schema_ic = schema_c < schema_ic,
-               schema_c_same_as_schema_ic = schema_c == schema_ic,
-               schema_c_more_than_no_schema = schema_c > no_schema,
-               schema_c_less_than_no_schema = schema_c < no_schema,
-               schema_c_same_as_no_schema = schema_c == no_schema) %>% 
-        select(-c('schema_c','schema_ic','random_locations','landmark_schema','no_schema')) %>% 
-        group_by(accuracy_type) %>%
-        summarise(across(starts_with('schema_'),sum),
-                  total_n = n()) %>%
-        pivot_longer(cols = starts_with('schema_c'),
-                     names_to = 'stat_type',
-                     values_to = 'count') %>% 
-        ggplot(aes(x=stat_type, y=count,fill = stat_type)) +
-        geom_bar(stat="identity",position=position_dodge()) +
-        scale_y_continuous(breaks=seq(0:10)) +
-        coord_cartesian(ylim = c(0,10)) +
-        facet_wrap(~accuracy_type) +
-        ggtitle('Last two reps') +
-        theme(axis.text.x = element_blank())
+# sum_stats_each_participant %>%
+#         filter(neighbor_status == 'both',
+#                accuracy_type %in% c('correct_exact','correct_one_square_away')) %>%
+#         droplevels() %>%
+#         pivot_wider(id_cols = c(ptp_trunk,
+#                                 accuracy_type,
+#                                 neighbor_status),
+#                     names_from = condition,
+#                     values_from = last_two_mean) %>% 
+#         mutate(schema_c_more_than_schema_ic = schema_c > schema_ic,
+#                schema_c_less_than_schema_ic = schema_c < schema_ic,
+#                schema_c_same_as_schema_ic = schema_c == schema_ic,
+#                schema_c_more_than_no_schema = schema_c > no_schema,
+#                schema_c_less_than_no_schema = schema_c < no_schema,
+#                schema_c_same_as_no_schema = schema_c == no_schema) %>% 
+#         select(-c('schema_c','schema_ic','random_locations','landmark_schema','no_schema')) %>% 
+#         group_by(accuracy_type) %>%
+#         summarise(across(starts_with('schema_'),sum),
+#                   total_n = n()) %>%
+#         pivot_longer(cols = starts_with('schema_c'),
+#                      names_to = 'stat_type',
+#                      values_to = 'count') %>% 
+#         ggplot(aes(x=stat_type, y=count,fill = stat_type)) +
+#         geom_bar(stat="identity",position=position_dodge()) +
+#         scale_y_continuous(breaks=seq(0:10)) +
+#         coord_cartesian(ylim = c(0,10)) +
+#         facet_wrap(~accuracy_type) +
+#         ggtitle('Last two reps') +
+#         theme(axis.text.x = element_blank())
 
 
 ```
