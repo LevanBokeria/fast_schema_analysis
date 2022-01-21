@@ -368,6 +368,20 @@ sum_stats_each_participant <- merge(last_two_reps_stats,
                                            'neighbor_status',
                                            'accuracy_type'))
 
+# Log transform the last 2 and last 4 measures
+sum_stats_each_participant <- sum_stats_each_participant %>%
+        mutate(log_last_two_mean = log(last_two_mean),
+               log_last_four_mean = log(last_four_mean))
+# If any of them are Inf values, substitute with the lowest value.
+
+sum_stats_each_participant <- sum_stats_each_participant %>%
+        mutate(log_last_two_mean = case_when(
+                is.infinite(log_last_two_mean) ~ min(log_last_two_mean*is.finite(log_last_two_mean),na.rm = T),
+                TRUE ~ log_last_two_mean),
+               log_last_four_mean = case_when(
+                is.infinite(log_last_four_mean) ~ min(log_last_four_mean*is.finite(log_last_four_mean),na.rm = T),
+                TRUE ~ log_last_four_mean))
+
 sum_stats_each_participant <- merge(sum_stats_each_participant,
                                     learning_and_intercept_each_participant,
                                     by = c('ptp_trunk',
@@ -679,8 +693,6 @@ print(fig_each_ptp_lm)
 
 ### Over all trials:
 
-I think the last 2 reps is a better dependent variable, because it captures better the "final" state of learning.
-
 ```{r plot-rough-measures-overall, fig.width=13, fig.height=4}
 
 sum_stats_each_participant %>%
@@ -729,6 +741,52 @@ sum_stats_each_participant %>%
         theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) +
         ggtitle('Overall, last 4 reps') 
 
+sum_stats_each_participant %>%
+        filter(neighbor_status == 'both') %>%
+        droplevels() %>%
+        ggplot(aes(x=condition,
+                   y=log_last_two_mean)) +
+        geom_violin() +
+        geom_dotplot(binaxis = 'y',
+                     stackdir = 'center',
+                     stackratio = 1,
+                     dotsize = 1,
+                     fill = 'black',
+                     alpha = 0.2) +
+        geom_line(aes(group=ptp_trunk,
+                      color=ptp_trunk)) +
+        facet_wrap(~accuracy_type, nrow = 1) +
+        stat_summary(fun=mean, geom="point", shape=20, size=5, 
+                     color="blue", fill="blue") + 
+        stat_summary(fun.data = mean_cl_normal,
+                     geom = "errorbar",size=1,width=0.1,color='blue') +
+        theme(legend.position = '') +
+        theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) +
+        ggtitle('Overall, LOG last 2 reps') 
+
+sum_stats_each_participant %>%
+        filter(neighbor_status == 'both') %>%
+        droplevels() %>%
+        ggplot(aes(x=condition,
+                   y=log_last_four_mean)) +
+        geom_violin() +
+        geom_dotplot(binaxis = 'y',
+                     stackdir = 'center',
+                     stackratio = 1,
+                     dotsize = 1,
+                     fill = 'black',
+                     alpha = 0.2) +
+        geom_line(aes(group=ptp_trunk,
+                      color=ptp_trunk)) +
+        facet_wrap(~accuracy_type, nrow = 1) +
+        stat_summary(fun=mean, geom="point", shape=20, size=5, 
+                     color="red", fill="red") + 
+        stat_summary(fun.data = mean_cl_normal,
+                     geom = "errorbar",size=1,width=0.1,color='red') +
+        theme(legend.position = '') +
+        theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) +
+        ggtitle('Overall, LOG last 4 reps') 
+
 ```
 
 
@@ -759,58 +817,77 @@ sum_stats_each_participant %>%
         theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) +
         ggtitle('Overall, last 2 reps') 
 
+sum_stats_each_participant %>%
+        filter(neighbor_status == 'both') %>%
+        droplevels() %>%
+        ggplot(aes(x=accuracy_type,
+                   y=last_four_mean)) +
+        geom_violin() +
+        geom_dotplot(binaxis = 'y',
+                     stackdir = 'center',
+                     stackratio = 1,
+                     dotsize = 1,
+                     fill = 'black',
+                     alpha = 0.2) +
+        geom_line(aes(group=ptp_trunk,
+                      color=ptp_trunk)) +
+        facet_wrap(~condition, nrow = 1) +
+        stat_summary(fun=mean, geom="point", shape=20, size=5, 
+                     color="red", fill="red") + 
+        stat_summary(fun.data = mean_cl_normal,
+                     geom = "errorbar",size=1,width=0.1,color='red') +
+        theme(legend.position = '') +
+        theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) +
+        ggtitle('Overall, last 4 reps') 
+
+sum_stats_each_participant %>%
+        filter(neighbor_status == 'both') %>%
+        droplevels() %>%
+        ggplot(aes(x=accuracy_type,
+                   y=log_last_two_mean)) +
+        geom_violin() +
+        geom_dotplot(binaxis = 'y',
+                     stackdir = 'center',
+                     stackratio = 1,
+                     dotsize = 1,
+                     fill = 'black',
+                     alpha = 0.2) +
+        geom_line(aes(group=ptp_trunk,
+                      color=ptp_trunk)) +
+        facet_wrap(~condition, nrow = 1) +
+        stat_summary(fun=mean, geom="point", shape=20, size=5, 
+                     color="blue", fill="blue") + 
+        stat_summary(fun.data = mean_cl_normal,
+                     geom = "errorbar",size=1,width=0.1,color='blue') +
+        theme(legend.position = '') +
+        theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) +
+        ggtitle('Overall, LOG last 2 reps') 
+
+sum_stats_each_participant %>%
+        filter(neighbor_status == 'both') %>%
+        droplevels() %>%
+        ggplot(aes(x=accuracy_type,
+                   y=log_last_four_mean)) +
+        geom_violin() +
+        geom_dotplot(binaxis = 'y',
+                     stackdir = 'center',
+                     stackratio = 1,
+                     dotsize = 1,
+                     fill = 'black',
+                     alpha = 0.2) +
+        geom_line(aes(group=ptp_trunk,
+                      color=ptp_trunk)) +
+        facet_wrap(~condition, nrow = 1) +
+        stat_summary(fun=mean, geom="point", shape=20, size=5, 
+                     color="red", fill="red") + 
+        stat_summary(fun.data = mean_cl_normal,
+                     geom = "errorbar",size=1,width=0.1,color='red') +
+        theme(legend.position = '') +
+        theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) +
+        ggtitle('Overall, LOG last 4 reps') 
+
 
 ```
-
-### Which is more Gaussian?
-
-Conclusion: no drastic difference.
-
-```{r rough-measures-gaussian, fig.width=13, fig.height=5}
-
-sum_stats_each_participant %>%
-        pivot_longer(cols = c(last_two_mean,last_four_mean),
-                     names_to = 'how_many_last',
-                     values_to = 'average_acc') %>%
-        filter(neighbor_status == 'both',
-               accuracy_type %in% c('correct_exact','correct_one_square_away')) %>%
-        droplevels() %>%
-        ggplot(aes(x=average_acc, group=how_many_last, color=how_many_last)) +
-        geom_density() +
-
-        facet_grid(accuracy_type~condition) +
-        ggtitle('Comparing which is more Gaussian')
-
-sum_stats_each_participant %>%
-        pivot_longer(cols = c(last_two_mean,last_four_mean),
-                     names_to = 'how_many_last',
-                     values_to = 'average_acc') %>%
-        filter(neighbor_status == 'island',
-               accuracy_type %in% c('correct_exact','correct_one_square_away')) %>%
-        droplevels() %>%
-        ggplot(aes(x=average_acc, group=how_many_last, color=how_many_last)) +
-        geom_density() +
-
-        facet_grid(accuracy_type~condition) +
-        ggtitle('Island only')
-
-sum_stats_each_participant %>%
-        pivot_longer(cols = c(last_two_mean,last_four_mean),
-                     names_to = 'how_many_last',
-                     values_to = 'average_acc') %>%
-        filter(neighbor_status == 'neighbor',
-               accuracy_type %in% c('correct_exact','correct_one_square_away')) %>%
-        droplevels() %>%
-        ggplot(aes(x=average_acc, group=how_many_last, color=how_many_last)) +
-        geom_density() +
-
-        facet_grid(accuracy_type~condition) +
-        ggtitle('Neighbor only')
-
-
-```
-
-
 
 ### Island vs Neighbor:
 
@@ -875,11 +952,226 @@ sum_stats_each_participant %>%
         theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) +
         ggtitle('Landmark minus non-landmark, last 4')
 
+# Last 2
+sum_stats_each_participant %>%
+        filter(neighbor_status != 'both',
+               !condition %in% c('random_locations','no_schema')) %>%
+        droplevels() %>%
+        pivot_wider(id_cols = c(ptp_trunk,
+                                condition,
+                                accuracy_type),
+                    names_from = neighbor_status,
+                    values_from = log_last_two_mean) %>% 
+        mutate(neighbor_diff = neighbor - island) %>%
+        ggplot(aes(x=condition,y=neighbor_diff)) +
+        geom_violin() +
+        # geom_jitter(width = 0.1, alpha = 0.2) +
+        geom_dotplot(binaxis='y', stackdir='center',
+                     stackratio=1, dotsize=1, fill="black",
+                     alpha=0.3) +        
+        geom_line(aes(group=ptp_trunk,
+                      color=ptp_trunk)) +
+        stat_summary(fun=mean, geom="point", shape=20, size=5, 
+                     color="blue", fill="blue") + 
+        stat_summary(fun.data = mean_cl_normal,
+                     geom = "errorbar",size=1,width=0.1,color='blue') +        
+        facet_wrap(~accuracy_type, nrow = 1) +
+        ylab('Diff') + 
+        theme(legend.position = '') +
+        theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) +
+        ggtitle('Landmark minus non-landmark, LOG last 2')
+
+# Last 4
+sum_stats_each_participant %>%
+        filter(neighbor_status != 'both',
+               !condition %in% c('random_locations','no_schema')) %>%
+        droplevels() %>%
+        pivot_wider(id_cols = c(ptp_trunk,
+                                condition,
+                                accuracy_type),
+                    names_from = neighbor_status,
+                    values_from = log_last_four_mean) %>% 
+        mutate(neighbor_diff = neighbor - island) %>%
+        ggplot(aes(x=condition,y=neighbor_diff)) +
+        geom_violin() +
+        # geom_jitter(width = 0.1, alpha = 0.2) +
+        geom_dotplot(binaxis='y', stackdir='center',
+                     stackratio=1, dotsize=1, fill="black",
+                     alpha=0.3) +        
+        geom_line(aes(group=ptp_trunk,
+                      color=ptp_trunk)) +
+        stat_summary(fun=mean, geom="point", shape=20, size=5, 
+                     color="red", fill="red") +   
+        stat_summary(fun.data = mean_cl_normal,
+                     geom = "errorbar",size=1,width=0.1,color='red') +        
+        facet_wrap(~accuracy_type, nrow = 1) +
+        ylab('Diff') + 
+        theme(legend.position = '') +
+        theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) +
+        ggtitle('Landmark minus non-landmark, LOG last 4')
+
 ```
+
+### Which is more Gaussian?
+
+Conclusion: no drastic difference. Both need to be log transformed though.
+
+#### Plot raw values
+
+```{r rough-measures-gaussian, fig.width=13, fig.height=5}
+
+sum_stats_each_participant %>%
+        pivot_longer(cols = c(last_two_mean,last_four_mean),
+                     names_to = 'how_many_last',
+                     values_to = 'average_acc') %>%
+        filter(neighbor_status == 'both',
+               accuracy_type %in% c('correct_exact','correct_one_square_away')) %>%
+        droplevels() %>%
+        ggplot(aes(x=average_acc, group=how_many_last, color=how_many_last)) +
+        geom_density() +
+
+        facet_grid(accuracy_type~condition) +
+        ggtitle('Comparing which is more Gaussian: all PAs')
+
+sum_stats_each_participant %>%
+        pivot_longer(cols = c(last_two_mean,last_four_mean),
+                     names_to = 'how_many_last',
+                     values_to = 'average_acc') %>%
+        filter(neighbor_status == 'island',
+               accuracy_type %in% c('correct_exact','correct_one_square_away'),
+                              !condition %in% c('random_locations','no_schema')) %>%
+        droplevels() %>%
+        ggplot(aes(x=average_acc, group=how_many_last, color=how_many_last)) +
+        geom_density() +
+
+        facet_grid(accuracy_type~condition) +
+        ggtitle('Island PAs only')
+
+sum_stats_each_participant %>%
+        pivot_longer(cols = c(last_two_mean,last_four_mean),
+                     names_to = 'how_many_last',
+                     values_to = 'average_acc') %>%
+        filter(neighbor_status == 'neighbor',
+               accuracy_type %in% c('correct_exact','correct_one_square_away'),
+               !condition %in% c('random_locations','no_schema')) %>%
+        droplevels() %>%
+        ggplot(aes(x=average_acc, group=how_many_last, color=how_many_last)) +
+        geom_density() +
+
+        facet_grid(accuracy_type~condition) +
+        ggtitle('Neighbor PAs only')
+
+
+```
+
+#### Plot log transformed values
+
+```{r log-rough-measures-gaussian, fig.width=13, fig.height=5}
+
+sum_stats_each_participant %>%
+        pivot_longer(cols = c(log_last_two_mean,log_last_four_mean),
+                     names_to = 'how_many_last',
+                     values_to = 'average_acc') %>%
+        filter(neighbor_status == 'both',
+               accuracy_type %in% c('correct_exact','correct_one_square_away')) %>%
+        droplevels() %>%
+        ggplot(aes(x=average_acc, group=how_many_last, color=how_many_last)) +
+        geom_density() +
+
+        facet_grid(accuracy_type~condition) +
+        ggtitle('LOG; Comparing which is more Gaussian: all PAs')
+
+sum_stats_each_participant %>%
+        pivot_longer(cols = c(log_last_two_mean,log_last_four_mean),
+                     names_to = 'how_many_last',
+                     values_to = 'average_acc') %>%
+        filter(neighbor_status == 'island',
+               accuracy_type %in% c('correct_exact','correct_one_square_away'),
+               !condition %in% c('random_locations','no_schema')) %>%
+        droplevels() %>%
+        ggplot(aes(x=average_acc, group=how_many_last, color=how_many_last)) +
+        geom_density() +
+
+        facet_grid(accuracy_type~condition) +
+        ggtitle('LOG; Island PAs only')
+
+sum_stats_each_participant %>%
+        pivot_longer(cols = c(log_last_two_mean,log_last_four_mean),
+                     names_to = 'how_many_last',
+                     values_to = 'average_acc') %>%
+        filter(neighbor_status == 'neighbor',
+               accuracy_type %in% c('correct_exact','correct_one_square_away'),
+               !condition %in% c('random_locations','no_schema')) %>%
+        droplevels() %>%
+        ggplot(aes(x=average_acc, group=how_many_last, color=how_many_last)) +
+        geom_density() +
+
+        facet_grid(accuracy_type~condition) +
+        ggtitle('LOG; Neighbor PAs only')
+
+
+```
+
+#### Plot the raw vs log directly overlaid
+
+```{r rough-measures-gaussian-log-vs-raw, fig.width=13, fig.height=6}
+
+sum_stats_each_participant %>%
+        pivot_longer(cols = c(log_last_two_mean,
+                              log_last_four_mean,
+                              last_two_mean,
+                              last_four_mean),
+                     names_to = 'type',
+                     values_to = 'average_acc') %>%
+        filter(neighbor_status == 'both',
+               accuracy_type %in% c('correct_exact','correct_one_square_away')) %>%
+        droplevels() %>%
+        ggplot(aes(x=average_acc, group=type, color=type)) +
+        geom_density() +
+
+        facet_grid(accuracy_type~condition) +
+        ggtitle('LOG vs Raw; all PAs')
+
+sum_stats_each_participant %>%
+        pivot_longer(cols = c(log_last_two_mean,
+                              log_last_four_mean,
+                              last_two_mean,
+                              last_four_mean),
+                     names_to = 'type',
+                     values_to = 'average_acc') %>%
+        filter(neighbor_status == 'neighbor',
+               accuracy_type %in% c('correct_exact','correct_one_square_away'),
+               !condition %in% c('random_locations','no_schema')) %>%
+        droplevels() %>%
+        ggplot(aes(x=average_acc, group=type, color=type)) +
+        geom_density() +
+
+        facet_grid(accuracy_type~condition) +
+        ggtitle('LOG vs Raw; Neighbors')
+
+sum_stats_each_participant %>%
+        pivot_longer(cols = c(log_last_two_mean,
+                              log_last_four_mean,
+                              last_two_mean,
+                              last_four_mean),
+                     names_to = 'type',
+                     values_to = 'average_acc') %>%
+        filter(neighbor_status == 'island',
+               accuracy_type %in% c('correct_exact','correct_one_square_away'),
+               !condition %in% c('random_locations','no_schema')) %>%
+        droplevels() %>%
+        ggplot(aes(x=average_acc, group=type, color=type)) +
+        geom_density() +
+
+        facet_grid(accuracy_type~condition) +
+        ggtitle('LOG vs Raw; Islands')
+
+
+```
+
 
 Conclusions from this section:
 
-- Use the average of last 2 reps as the "rough" measure of learning.
 - Use correct_exact and correct_one_square_away measures.
 - Landmark-vs-non-landmark doesn't seem to show any strong differences on the plots.
 
