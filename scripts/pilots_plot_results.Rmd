@@ -1606,6 +1606,7 @@ sum_stats_each_participant %>%
 
 
 ```
+
 ### Last four reps
 
 Same for last four reps
