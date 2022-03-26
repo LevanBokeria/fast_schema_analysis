@@ -15,20 +15,7 @@
 
 rm(list=ls())
 
-pacman::p_load(pacman,
-               tidyverse,
-               rstatix,
-               DT,
-               kableExtra,
-               readr,
-               writexl,
-               jsonlite,
-               stringr,
-               gridExtra,
-               knitr,
-               magrittr,
-               pdist,
-               gghighlight)
+source('./scripts/utils/load_all_libraries.R')
 
 # Some global setup ###########################################################
 

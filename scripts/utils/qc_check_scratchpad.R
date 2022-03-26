@@ -68,6 +68,14 @@ for (iPtp in levels(session_results_all_ptp$ptp_trunk)){
         
 }
 
+# Get accuracy for the one who didn't pay attention
+session_results_all_ptp %>%
+        filter(ptp_trunk == '609478f...',
+               !condition %in% c('practice','practice2'),
+               session == 2) %>% 
+        group_by(condition) %>%
+        summarise(mean_acc = mean(correct_one_square_away,na.rm=T))
+
 # # Plot RT distributions
 # session_results_all_ptp %>%
 #         filter(!condition %in% c('practice','practice2')) %>%
