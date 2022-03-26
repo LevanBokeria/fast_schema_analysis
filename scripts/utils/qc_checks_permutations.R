@@ -42,9 +42,9 @@ df_all_ptp <- session_results_all_ptp %>%
 
 ctr <- 1
 
-niter <- 2000
+niter <- 10000
 
-for (iPtp in levels(df_all_ptp$ptp_trunk)[7:9]){
+for (iPtp in levels(df_all_ptp$ptp_trunk)){
         
         print(iPtp)
         
