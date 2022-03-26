@@ -40,7 +40,7 @@ for (iPtp in levels(session_results_all_ptp$ptp_trunk)){
                 select(row,col,corr_row,corr_col) %>%
                 as.data.frame(row.names = 1:nrow(.))
         
-        for (i in seq(1:100)){
+        for (i in seq(1:1000)){
                 
                 # permute
                 rand_idx <- sample(120)
@@ -73,7 +73,7 @@ session_results_all_ptp %>%
         filter(ptp_trunk == '609478f...',
                !condition %in% c('practice','practice2'),
                session == 2) %>% 
-        group_by(condition) %>%
+        # group_by(condition) %>%
         summarise(mean_acc = mean(correct_one_square_away,na.rm=T))
 
 # # Plot RT distributions
