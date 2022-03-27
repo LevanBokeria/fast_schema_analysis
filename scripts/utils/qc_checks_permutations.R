@@ -26,8 +26,6 @@ session_results_all_ptp <- session_results_all_ptp %>%
                                             'no_schema'))
         
 # Permutation-based chance level ##############################################
-results <- vector(mode = "list", length = length(levels(session_results_all_ptp$ptp_trunk)))
-
 results <- list()
 
 # A giant matrix approach --------------------------------------------------
@@ -117,7 +115,8 @@ df_percentile <- results_bound %>%
 results_bound %>%
         ggplot() +
         geom_histogram(aes(x = mean_correct_one_square_away_shuff,
-                           fill = condition)) +
+                           fill = condition),
+                       bins = 25) +
         geom_vline(data = df_percentile,
                    aes(xintercept = mean_correct_one_square_away)) +
         geom_text(data = df_percentile,
