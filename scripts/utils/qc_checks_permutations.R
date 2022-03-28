@@ -1,8 +1,5 @@
 # Description ####
 
-# Loads the pilot data and checks for quality.
-# Will plot RT distributions and clicking locations
-
 
 
 # Clean the environment and load libraries ############################
@@ -42,7 +39,7 @@ ctr <- 1
 
 niter <- 10000
 
-for (iPtp in levels(df_all_ptp$ptp_trunk)){
+for (iPtp in levels(df_all_ptp$ptp_trunk)[9]){
         
         print(iPtp)
         
@@ -111,8 +108,7 @@ df_percentile <- results_bound %>%
         ungroup()
 
 # Plot ------------------------------------------------------------------------
-
-results_bound %>%
+fig1 <- results_bound %>%
         ggplot() +
         geom_histogram(aes(x = mean_correct_one_square_away_shuff,
                            fill = condition),
@@ -124,6 +120,8 @@ results_bound %>%
                       y = niter / 2,
                       label = percentile_sim)) +
         facet_grid(ptp_trunk~condition) 
+
+print(fig1)
 
 # Did any fail? ---------------------------------------------------------------
 

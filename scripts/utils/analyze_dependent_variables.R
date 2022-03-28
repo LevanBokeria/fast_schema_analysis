@@ -32,12 +32,12 @@ session_results_all_ptp_long_accuracy <-
 mean_by_rep_long <- 
         session_results_all_ptp_long_accuracy %>%
         filter(!condition %in% c('practice','practice2')) %>%
-        droplevels() %>%
+        droplevels() %>% 
         group_by(ptp_trunk,
                  condition,
                  new_pa_img_row_number_across_sessions,
-                 accuracy_type) %>%
-        summarize(correct_mean = mean(accuracy_value, na.rm = T),
+                 accuracy_type) %>% 
+        summarise(correct_mean = mean(accuracy_value, na.rm = T),
                   correct_sd = sd(accuracy_value, na.rm = T),
                   correct_n = n()) %>%
         ungroup()
@@ -53,7 +53,7 @@ mean_by_landmark_rep_long <-
                  adjascent_neighbor,
                  new_pa_img_row_number_across_sessions,
                  accuracy_type) %>%
-        summarize(correct_mean = mean(accuracy_value, na.rm = T),
+        summarise(correct_mean = mean(accuracy_value, na.rm = T),
                   correct_sd = sd(accuracy_value, na.rm = T),
                   correct_n = as.numeric(n())) %>%
         ungroup() %>%

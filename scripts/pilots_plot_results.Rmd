@@ -65,7 +65,7 @@ c_upper <- 20
 i_lower <- 0
 i_upper <- 1
 
-qc_filter <- T
+qc_filter <- F
 
 ```
 
