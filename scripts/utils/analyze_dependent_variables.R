@@ -1,4 +1,20 @@
 
+# If qc_filter variable doesnt exist, create it
+if (!exists('qc_filter')){
+        
+        qc_filter <- F
+        
+}
+
+if (!exists('session_results_all_ptp')){
+        
+        # Load the data 
+        session_results_all_ptp <- import(
+                './results/pilots/preprocessed_data/session_results_long_form.csv'
+        )
+        
+}
+
 
 if (qc_filter){
         
@@ -10,6 +26,24 @@ if (qc_filter){
         
 }
 
+session_results_all_ptp <- session_results_all_ptp %>%
+        reorder_levels(condition, order = c('practice',
+                                            'practice2',
+                                            'schema_c',
+                                            'schema_ic',
+                                            'landmark_schema',
+                                            'random_locations',
+                                            'no_schema'))
+
+# Exclude the practice trials #######################################
+session_results_all_ptp <- session_results_all_ptp %>%
+        filter(!condition %in% c('practice','practice2')) %>%
+        droplevels()
+
+# Exclude close to border items
+session_results_all_ptp <- session_results_all_ptp %>%
+        filter(!border_dist %in% c(1,2)) %>%
+        droplevels()
 
 # Create long form accuracy type ######################################
 session_results_all_ptp_long_accuracy <- 
@@ -31,7 +65,6 @@ session_results_all_ptp_long_accuracy <-
 # Create one large long form for image repetitions #####################
 mean_by_rep_long <- 
         session_results_all_ptp_long_accuracy %>%
-        filter(!condition %in% c('practice','practice2')) %>%
         droplevels() %>% 
         group_by(ptp_trunk,
                  condition,
@@ -46,7 +79,6 @@ mean_by_rep_long <-
 # Calculate mean for neighbor vs non neighbor
 mean_by_landmark_rep_long <-
         session_results_all_ptp_long_accuracy %>%
-        filter(!condition %in% c('practice','practice2')) %>%
         droplevels() %>%
         group_by(ptp_trunk,
                  condition,
@@ -91,7 +123,9 @@ mean_by_rep_all_types <- merge(mean_by_rep_long,
                                       'accuracy_type'),
                                all = TRUE)
 
-# Pivot longer, but we have to do three coluns, so break this up into two parts, then merge.
+## Go from wide to long for both/near/far-PA -----------------------------------
+
+# Pivot longer, but we have to do three columns, so break this up into two parts, then merge.
 # Its possible to do this in one line, using names_pattern, but that needs complicated regular expressions
 mean_by_rep_all_types_long_1 <-
         mean_by_rep_all_types %>%
@@ -149,8 +183,25 @@ mean_by_rep_all_types_long <-
         mutate(ci_95 = 1.96*correct_sd/sqrt(n))
 
 
+## Calculate for each distance from border -----------------------------------
 
-# Clean the extra variables
+mean_by_border_dist_rep_long <-
+        session_results_all_ptp_long_accuracy %>%
+        droplevels() %>%
+        group_by(ptp_trunk,
+                 condition,
+                 border_dist,
+                 new_pa_img_row_number_across_sessions,
+                 session,
+                 accuracy_type) %>%
+        summarise(correct_mean = mean(accuracy_value, na.rm = T),
+                  correct_sd   = sd(accuracy_value, na.rm = T),
+                  correct_n    = as.numeric(n())) %>%
+        ungroup()
+
+
+
+## Clean the extra variables -------------------------------------------------
 rm(mean_by_rep_all_types_long_1)
 rm(mean_by_rep_all_types_long_2)
 rm(mean_by_rep_all_types_long_3)
@@ -230,6 +281,9 @@ mean_by_rep_all_types_long <- merge(mean_by_rep_all_types_long,
                                     all = TRUE)
 
 # Rough measures for learning #########################################
+
+## For both/near/far-PA -----------------------------------------------
+
 last_two_reps_stats <-
         mean_by_rep_all_types_long %>%
         filter(new_pa_img_row_number_across_sessions %in% c(7,8)) %>%
@@ -282,4 +336,10 @@ sum_stats_each_participant <- merge(sum_stats_each_participant,
                                            'accuracy_type'),
                                     all = TRUE)
 
-       
+## For Border effects -----------------------------------------------
+
+
+
+
+
+

@@ -213,7 +213,7 @@ for (iName in filenames){
                        dist_border_t = corr_row - 1,
                        dist_border_b = 12 - corr_row) %>%
                 rowwise() %>%
-                mutate(boundary_dist = min(dist_border_l,
+                mutate(border_dist = min(dist_border_l,
                                            dist_border_r,
                                            dist_border_t,
                                            dist_border_b))

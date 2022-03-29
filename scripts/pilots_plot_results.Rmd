@@ -37,16 +37,6 @@ session_results_all_ptp <- import(
         './results/pilots/preprocessed_data/session_results_long_form.csv'
         )
 
-session_results_all_ptp <- session_results_all_ptp %>%
-        reorder_levels(condition, order = c('practice',
-                                            'practice2',
-                                            'schema_c',
-                                            'schema_ic',
-                                            'landmark_schema',
-                                            'random_locations',
-                                            'no_schema')
-                       )
-
 
 ```
 
@@ -81,7 +71,7 @@ source('./scripts/utils/analyze_dependent_variables.R')
 ```{r order-of-conditions}
 
 # For each participant, list the order of conditions
-condition_orders <- tibble(.rows = 7)
+condition_orders <- tibble(.rows = 5)
 
 all_ptp <- unique(session_results_all_ptp$ptp)
 
