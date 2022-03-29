@@ -208,12 +208,17 @@ for (iName in filenames){
         
         # Mark which ones are close to the border of the board
         session_results <- session_results %>%
-                mutate(corr_row_comp = 12 - corr_row,
-                       corr_col_comp = 12 - corr_col,
-                       
-                       )
+                mutate(dist_border_l = corr_col - 1,
+                       dist_border_r = 12 - corr_col,
+                       dist_border_t = corr_row - 1,
+                       dist_border_b = 12 - corr_row) %>%
+                rowwise() %>%
+                mutate(boundary_dist = min(dist_border_l,
+                                           dist_border_r,
+                                           dist_border_t,
+                                           dist_border_b))
         
-        
+        # Combine the data across participants
         session_results_all_ptp <- bind_rows(session_results_all_ptp,session_results)
         
         # Add up feedback
