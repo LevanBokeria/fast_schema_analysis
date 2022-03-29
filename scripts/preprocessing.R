@@ -73,7 +73,7 @@ for (iName in filenames){
         n_trials_per_session <- session_results %>%
                 filter(!condition %in% c('practice','practice2')) %>% 
                 group_by(condition,session) %>%
-                summarize(n = n())
+                summarise(n = n())
         if (any(n_trials_per_session$n != 24)){
                 stop('n trials per session is wrong!')
         }
