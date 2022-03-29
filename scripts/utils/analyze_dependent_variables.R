@@ -41,9 +41,9 @@ session_results_all_ptp <- session_results_all_ptp %>%
         droplevels()
 
 # Exclude close to border items
-session_results_all_ptp <- session_results_all_ptp %>%
-        filter(!border_dist %in% c(1,2)) %>%
-        droplevels()
+# session_results_all_ptp <- session_results_all_ptp %>%
+#         filter(!border_dist %in% c(1,2)) %>%
+#         droplevels()
 
 # Create long form accuracy type ######################################
 session_results_all_ptp_long_accuracy <- 
