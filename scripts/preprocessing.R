@@ -206,6 +206,14 @@ for (iName in filenames){
                 
         }
         
+        # Mark which ones are close to the border of the board
+        session_results <- session_results %>%
+                mutate(corr_row_comp = 12 - corr_row,
+                       corr_col_comp = 12 - corr_col,
+                       
+                       )
+        
+        
         session_results_all_ptp <- bind_rows(session_results_all_ptp,session_results)
         
         # Add up feedback

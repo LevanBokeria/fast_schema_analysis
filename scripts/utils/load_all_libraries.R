@@ -20,4 +20,5 @@ pacman::p_load(pacman,
                magrittr,
                Hmisc,
                psycho,
-               data.table)
+               data.table,
+               pdist)
