@@ -26,6 +26,13 @@ if (qc_filter){
         
 }
 
+if (!exists('exclude_border')){
+        
+        # Load the data 
+        exclude_border <- F
+        
+}
+
 session_results_all_ptp <- session_results_all_ptp %>%
         reorder_levels(condition, order = c('practice',
                                             'practice2',
@@ -40,10 +47,15 @@ session_results_all_ptp <- session_results_all_ptp %>%
         filter(!condition %in% c('practice','practice2')) %>%
         droplevels()
 
-# Exclude close to border items
-# session_results_all_ptp <- session_results_all_ptp %>%
-#         filter(!border_dist %in% c(1,2)) %>%
-#         droplevels()
+if (exclude_border){
+        
+        # Exclude close to border items
+        session_results_all_ptp <- session_results_all_ptp %>%
+                filter(!border_dist %in% border_dist_to_exclude) %>%
+                droplevels()
+        
+}
+
 
 # Create long form accuracy type ######################################
 session_results_all_ptp_long_accuracy <- 
