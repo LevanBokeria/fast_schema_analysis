@@ -1,17 +1,20 @@
+# Load libraries, data, define flags, etc #####################################
+
+## Load all the libraries ----------------------------------------------------
+source('./scripts/utils/load_all_libraries.R')
+
+
+## Load the data -------------------------------------------------------------
+
+session_results_all_ptp <- import(
+        './results/pilots/preprocessed_data/session_results_long_form.csv')
+
+## Define flags --------------------------------------------------------------
 
 # If qc_filter variable doesnt exist, create it
 if (!exists('qc_filter')){
         
         qc_filter <- F
-        
-}
-
-if (!exists('session_results_all_ptp')){
-        
-        # Load the data 
-        session_results_all_ptp <- import(
-                './results/pilots/preprocessed_data/session_results_long_form.csv'
-        )
         
 }
 
@@ -33,6 +36,7 @@ if (!exists('exclude_border')){
         
 }
 
+# Reorder the condition levels 
 session_results_all_ptp <- session_results_all_ptp %>%
         reorder_levels(condition, order = c('practice',
                                             'practice2',
@@ -42,11 +46,12 @@ session_results_all_ptp <- session_results_all_ptp %>%
                                             'random_locations',
                                             'no_schema'))
 
-# Exclude the practice trials #######################################
+## Exclude the practice trials -----------------------------------------------
 session_results_all_ptp <- session_results_all_ptp %>%
         filter(!condition %in% c('practice','practice2')) %>%
         droplevels()
 
+## Exclude specific border items? ----------------------------------------------
 if (exclude_border){
         
         # Exclude close to border items
@@ -56,8 +61,9 @@ if (exclude_border){
         
 }
 
+# Start analysis ###############################################################
 
-# Create long form accuracy type ######################################
+## Create long form accuracy type
 session_results_all_ptp_long_accuracy <- 
         session_results_all_ptp %>%
         pivot_longer(cols = starts_with("correct_"),
@@ -74,7 +80,7 @@ session_results_all_ptp_long_accuracy <-
                 'correct_rad_105'
         ))
 
-# Create one large long form for image repetitions #####################
+## Create one large long form for image repetitions
 mean_by_rep_long <- 
         session_results_all_ptp_long_accuracy %>%
         droplevels() %>% 
@@ -211,13 +217,6 @@ mean_by_border_dist_rep_long <-
                   correct_n    = as.numeric(n())) %>%
         ungroup()
 
-
-
-## Clean the extra variables -------------------------------------------------
-rm(mean_by_rep_all_types_long_1)
-rm(mean_by_rep_all_types_long_2)
-rm(mean_by_rep_all_types_long_3)
-
 # Fit the learning curves #############################################
 learning_and_intercept_each_participant <-
         mean_by_rep_all_types_long %>%
@@ -348,8 +347,14 @@ sum_stats_each_participant <- merge(sum_stats_each_participant,
                                            'accuracy_type'),
                                     all = TRUE)
 
-## For Border effects -----------------------------------------------
-
+# Remove extra variables #####################################################
+rm(learning_and_intercept_each_participant)
+rm(mean_by_rep_all_types_long_1)
+rm(mean_by_rep_all_types_long_2)
+rm(mean_by_rep_all_types_long_3)
+rm(mean_by_landmark_rep_long)
+rm(mean_by_landmark_rep_long_wide)
+rm(mean_by_rep_long)
 
 
 

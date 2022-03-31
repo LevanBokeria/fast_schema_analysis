@@ -1,0 +1,432 @@
+---
+title: "Analyzing Pilot Results"
+output:
+  html_document:
+    number_sections: false
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE)
+```
+
+# Setup: load data, define variables, etc
+
+```{r load-data-define-variables}
+
+rm(list=ls())
+
+source('./scripts/utils/load_all_libraries.R')
+
+# Load an external script which contains functions for estimating either just the learning rate, or also the asymptote
+source('./scripts/utils/functions_for_fitting_learning_curves.R')
+
+# Create parameters as starting points for estimations
+i_start <- 0.5
+c_start <- 0.1
+
+# Create lower and upper bound constraints on the asymptote and learning rate
+c_lower <- -Inf
+c_upper <- Inf
+i_lower <- -Inf
+i_upper <- Inf
+
+qc_filter <- F
+
+```
+
+# Do all the calculations of all the dependent variables
+
+```{r analyze-dependent-variables}
+
+source('./scripts/utils/analyze_dependent_variables.R')
+
+
+```
+
+```{r order-of-conditions}
+
+# For each participant, list the order of conditions
+condition_orders <- tibble(.rows = 5)
+
+all_ptp <- unique(session_results_all_ptp$ptp)
+
+for (iPtp in as.vector(all_ptp)){
+        iPtp
+        condition_orders[iPtp] <-
+                unique(
+                        session_results_all_ptp$condition[
+                                session_results_all_ptp$ptp==iPtp
+                                ])
+}
+
+```
+
+# Combine matlab learning rate estimates 
+
+```{r combine-matlab}
+
+ml_learning_rate <- import('./results/pilots/preprocessed_data/learning_rate_fits_matlab.csv')
+
+sum_stats_each_participant <- merge(sum_stats_each_participant,
+                                    ml_learning_rate,
+                                    by = c('ptp_trunk',
+                                           'condition',
+                                           'neighbor_status',
+                                           'accuracy_type'),
+                                    all.x = T)
+
+sum_stats_each_participant <- sum_stats_each_participant %>%
+        rename(sse = sse.x,
+               sse_ml = sse.y,
+               i_ml = intercept,
+               c_ml = learning_rate)
+
+# Calculate predicted y values and merge with the long form data
+learning_and_intercept_each_participants_y_hat_ml <-
+        ml_learning_rate %>%
+        group_by(ptp_trunk,
+                 condition,
+                 neighbor_status,
+                 accuracy_type) %>% 
+        mutate(y_hat_i_c_ml = list(fit_learning_and_intercept(c(intercept,learning_rate),
+                                                           seq(1:8),
+                                                           seq(1:8),
+                                                           'fit')),
+               new_pa_img_row_number_across_sessions = list(seq(1:8))) %>%
+        unnest(c(y_hat_i_c_ml,
+                 new_pa_img_row_number_across_sessions)) %>% 
+        select(c(ptp_trunk,
+                 condition,
+                 neighbor_status,
+                 accuracy_type,
+                 y_hat_i_c_ml,
+                 new_pa_img_row_number_across_sessions)) %>%
+        ungroup()
+
+mean_by_rep_all_types_long <- merge(mean_by_rep_all_types_long,
+                                    learning_and_intercept_each_participants_y_hat_ml,
+                                    by = c('ptp_trunk',
+                                           'condition',
+                                           'neighbor_status',
+                                           'accuracy_type',
+                                           'new_pa_img_row_number_across_sessions'),
+                                    all = TRUE)
+
+
+```
+
+## Do ML and R estimates correlate?
+
+```{r ml_r_correlations}
+sum_stats_each_participant <- sum_stats_each_participant %>%
+        mutate(i_diff = i - i_ml,
+               c_diff = c - c_ml)
+
+sum_stats_each_participant %>%
+        filter(accuracy_type %in% c('correct_exact',
+                                    'correct_one_square_away')) %>%
+        ggplot(aes(x=i,
+                   y=i_ml,
+                   color = neighbor_status)) +
+        geom_point() +
+        facet_wrap(~accuracy_type)
+
+sum_stats_each_participant %>%
+        filter(accuracy_type == 'correct_exact') %>%
+        droplevels() %>%
+        ggplot(aes(x=c,
+                   y=c_ml,
+                   color = neighbor_status)) +
+        geom_point() +
+        facet_wrap(~accuracy_type)
+
+sum_stats_each_participant %>%
+        filter(accuracy_type == 'correct_one_square_away') %>%
+        droplevels() %>%
+        ggplot(aes(x=c,
+                   y=c_ml,
+                   color = neighbor_status)) +
+        geom_point() +
+        facet_wrap(~accuracy_type)
+
+# Diff in i
+sum_stats_each_participant %>%
+        ggplot(aes(x = seq(1:nrow(.)),y = i_diff)) +
+        geom_point()
+
+# Diff in c
+sum_stats_each_participant %>%
+        # filter(c_diff > -5) %>%
+        ggplot(aes(x = seq(1:nrow(.)),y = c_diff)) +
+        geom_point()
+
+```
+
+# Learning curve plots
+
+## Raw learning curves + learning fits
+
+So, overlay the curve fits, with annotated info about the intercept value, learning rate value, and convergence status.
+For the convergence status:
+
+- 0 means success
+- 52 means error.
+
+Only plot correct_exact and then correct_one_square_away. Two separate panels of plots for each.
+
+Looking at those participants where the convergence failed, its unclear why it happens. For some of the failure cases, the data doesn't look messy or weird in any way. For example, participant '6047ae5...' random_locations condition, one_square_away measure.
+
+```{r raw-learning-curves-and-fits, fig.width=13, fig.height=12}
+
+# Plot the fits
+fig_each_ptp <- mean_by_rep_all_types_long %>%
+        filter(accuracy_type %in% c('correct_exact'),
+               neighbor_status == 'both') %>%
+        droplevels() %>%        
+        ggplot(aes(x=new_pa_img_row_number_across_sessions,
+                   y=correct_mean)) +
+        geom_point() +
+        geom_line(size=0.5) +
+
+        # Add the y_hat learning and intercept
+        geom_line(aes(x=new_pa_img_row_number_across_sessions,
+                      y=y_hat_i_c),
+                  size=1,
+                  color='blue',
+                  linetype = 'longdash') +
+        
+        # Add the y_hat learning and intercept from MATLAB
+        geom_line(aes(x=new_pa_img_row_number_across_sessions,
+                      y=y_hat_i_c_ml),
+                  size=1,
+                  color='green',
+                  linetype = 'twodash') +        
+
+        facet_grid(ptp_trunk~condition) +
+        ggtitle(paste('Exact correct: real and estimate data',sep='')) +
+        xlab('Image repetition') +
+        ylab('Correct Exact') +
+        scale_x_continuous(breaks=c(1,2,3,4,5,6,7,8)) +
+        # theme(legend.position = 'top') +
+        geom_vline(xintercept = 4.5, linetype = 'dashed') +
+        geom_text(data=filter(
+                sum_stats_each_participant,
+                accuracy_type %in% c('correct_exact'),
+                neighbor_status == 'both'
+                ),
+                aes(x=4,
+                    y=0.65,
+                    label = paste('conv=',
+                                  as.character(convergence),
+                                  ' ',
+                                  'i=',
+                                  as.character(round(i,2)),
+                                  ' ',
+                                  'c=',
+                                  as.character(round(c,2)),
+                                  seq=''))) +
+        theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank())
+        # geom_text(data=learning_only_each_participant,
+        #           aes(x=7,y=0.05, label = paste('c=',as.character(round(c,2)),seq='')))        
+        # annotate('text',x=1.5,y = 0.85, label = learning_and_asymptote_each_participant$a ,size=3)
+
+
+print(fig_each_ptp)
+
+# Now, plot with one square away
+
+# Plot the fits
+fig_each_ptp <- mean_by_rep_all_types_long %>%
+        filter(accuracy_type %in% c('correct_one_square_away'),
+               neighbor_status == 'both') %>%
+        droplevels() %>%        
+        ggplot(aes(x=new_pa_img_row_number_across_sessions,
+                   y=correct_mean)) +
+        geom_point() +
+        geom_line(size=0.5) +
+
+        # Add the y_hat learning and intercept
+        geom_line(aes(x=new_pa_img_row_number_across_sessions,
+                      y=y_hat_i_c),
+                  size=1,
+                  color='red',
+                  linetype = 'longdash') +
+        
+        # Add the y_hat learning and intercept from MATLAB
+        geom_line(aes(x=new_pa_img_row_number_across_sessions,
+                      y=y_hat_i_c_ml),
+                  size=1,
+                  color='green',
+                  linetype = 'twodash') +         
+
+        facet_grid(ptp_trunk~condition) +
+        ggtitle(paste('One square away: real and estimate data',sep='')) +
+        xlab('Image repetition') +
+        ylab('Correct One Square Away') +
+        scale_x_continuous(breaks=c(1,2,3,4,5,6,7,8)) +
+        # theme(legend.position = 'top') +
+        geom_vline(xintercept = 4.5, linetype = 'dashed') +
+        geom_text(data=filter(
+                sum_stats_each_participant,
+                accuracy_type %in% c('correct_one_square_away'),
+                neighbor_status == 'both'
+                ),
+                aes(x=5.5,
+                    y=0.15,
+                    label = paste('conv=',
+                                  as.character(convergence),
+                                  ' ',
+                                  'i=',
+                                  as.character(round(i,2)),
+                                  ' ',
+                                  'c=',
+                                  as.character(round(c,2)),
+                                  seq=''))) +
+        theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank())
+        # geom_text(data=learning_only_each_participant,
+        #           aes(x=7,y=0.05, label = paste('c=',as.character(round(c,2)),seq='')))        
+        # annotate('text',x=1.5,y = 0.85, label = learning_and_asymptote_each_participant$a ,size=3)
+
+
+print(fig_each_ptp)
+
+
+
+```
+
+## Learning curves: Landmark vs non-landmark
+
+Neighbor PAs are coded as "neighbor".
+Non-neighbor PAs are coded as "island".
+
+Again, two panels of plots for the two dependent variables: "exact correct" and "correct one square away".
+
+We can see convergence in all but 1 case: 5d776e2... landmark_schema, one_square_away.
+
+
+```{r landmark-raw-learning-curves-and-fits, fig.width=10, fig.height=12}
+
+# Plot the fits
+fig_each_ptp_lm <- mean_by_rep_all_types_long %>%
+        filter(accuracy_type %in% c('correct_exact'),
+               neighbor_status %in% c('island','neighbor'),
+               !condition %in% c('random_locations','no_schema')) %>%
+        droplevels() %>%        
+        ggplot(aes(x=new_pa_img_row_number_across_sessions,
+                   y=correct_mean,
+                   group=neighbor_status,
+                   color=neighbor_status)) +
+        geom_point(alpha = 0.1) +
+        geom_line(size=0.5,
+                  alpha = 0.1) +
+# 
+        # Add the y_hat learning and intercept
+        geom_line(aes(x=new_pa_img_row_number_across_sessions,
+                      y=y_hat_i_c),
+                  size=0.5,
+                  # color='blue',
+                  linetype = 'F1') +
+        
+        # Add the y_hat learning and intercept
+        geom_line(aes(x=new_pa_img_row_number_across_sessions,
+                      y=y_hat_i_c_ml+0.05),
+                  size=0.5,
+                  # color='blue',
+                  linetype = 'dotted') +        
+
+        facet_grid(ptp_trunk~condition) +
+        ggtitle(paste('Exact correct: real and estimate data',sep='')) +
+        xlab('Image repetition') +
+        ylab('Correct Exact') +
+        scale_x_continuous(breaks=c(1,2,3,4,5,6,7,8)) +
+        # theme(legend.position = 'top') +
+        geom_vline(xintercept = 4.5, linetype = 'dashed') +
+        # geom_text(data=filter(
+        #         sum_stats_each_participant,
+        #         accuracy_type %in% c('correct_exact'),
+        #         neighbor_status %in% c('island','neighbor'),
+        #         !condition %in% c('random_locations','no_schema')
+        #         ),
+        #         aes(x=3.5,
+        #             y=0.65,
+        #             label = paste('conv=',
+        #                           as.character(convergence),
+        #                           ' ',
+        #                           'i=',
+        #                           as.character(round(i,2)),
+        #                           ' ',
+        #                           'c=',
+        #                           as.character(round(c,2)),
+        #                           seq='')),
+        #         position=ggstance::position_dodgev(height=0.3),
+        #         size = 3) +
+        theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank())
+        # geom_text(data=learning_only_each_participant,
+        #           aes(x=7,y=0.05, label = paste('c=',as.character(round(c,2)),seq='')))        
+        # annotate('text',x=1.5,y = 0.85, label = learning_and_asymptote_each_participant$a ,size=3)
+
+
+print(fig_each_ptp_lm)
+
+# Plot the fits
+fig_each_ptp_lm <- mean_by_rep_all_types_long %>%
+        filter(accuracy_type %in% c('correct_one_square_away'),
+               neighbor_status %in% c('island','neighbor'),
+               !condition %in% c('random_locations','no_schema')) %>%
+        droplevels() %>%        
+        ggplot(aes(x=new_pa_img_row_number_across_sessions,
+                   y=correct_mean,
+                   group=neighbor_status,
+                   color=neighbor_status)) +
+        geom_point(alpha=0.1) +
+        geom_line(size=0.5,
+                  alpha=0.1) +
+# 
+        # Add the y_hat learning and intercept
+        geom_line(aes(x=new_pa_img_row_number_across_sessions,
+                      y=y_hat_i_c),
+                  size=0.5,
+                  # color='blue',
+                  linetype = 'F1') +
+        # Add the y_hat learning and intercept for MATLAB
+        geom_line(aes(x=new_pa_img_row_number_across_sessions,
+                      y=y_hat_i_c_ml+0.05),
+                  size=0.5,
+                  # color='blue',
+                  linetype = 'dotted') +        
+
+        facet_grid(ptp_trunk~condition) +
+        ggtitle(paste('correct_one_square_away: real and estimate data',sep='')) +
+        xlab('Image repetition') +
+        ylab('correct_one_square_away') +
+        scale_x_continuous(breaks=c(1,2,3,4,5,6,7,8)) +
+        # theme(legend.position = 'top') +
+        geom_vline(xintercept = 4.5, linetype = 'dashed') +
+        # geom_text(data=filter(
+        #         sum_stats_each_participant,
+        #         accuracy_type %in% c('correct_one_square_away'),
+        #         neighbor_status %in% c('island','neighbor'),
+        #         !condition %in% c('random_locations','no_schema')
+        #         ),
+        #         aes(x=3.5,
+        #             y=0.65,
+        #             label = paste('conv=',
+        #                           as.character(convergence),
+        #                           ' ',
+        #                           'i=',
+        #                           as.character(round(i,2)),
+        #                           ' ',
+        #                           'c=',
+        #                           as.character(round(c,2)),
+        #                           seq='')),
+        #         position=ggstance::position_dodgev(height=0.3))
+        theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank())
+        # geom_text(data=learning_only_each_participant,
+        #           aes(x=7,y=0.05, label = paste('c=',as.character(round(c,2)),seq='')))        
+        # annotate('text',x=1.5,y = 0.85, label = learning_and_asymptote_each_participant$a ,size=3)
+
+
+print(fig_each_ptp_lm)
+
+
+```

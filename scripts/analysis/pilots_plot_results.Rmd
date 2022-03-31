@@ -15,32 +15,7 @@ knitr::opts_chunk$set(echo = FALSE)
 
 rm(list=ls())
 
-pacman::p_load(pacman,
-               rio,
-               tidyverse,
-               rstatix,
-               DT,
-               kableExtra,
-               readr,
-               writexl,
-               jsonlite,
-               stringr,
-               gridExtra,
-               knitr,
-               magrittr,
-               pdist,
-               gghighlight)
-
-
-# Load the data ##########################
-session_results_all_ptp <- import(
-        './results/pilots/preprocessed_data/session_results_long_form.csv'
-        )
-
-
-```
-
-```{r define-parameters-load-functions}
+source('./scripts/utils/load_all_libraries.R')
 
 # Load an external script which contains functions for estimating either just the learning rate, or also the asymptote
 source('./scripts/utils/functions_for_fitting_learning_curves.R')

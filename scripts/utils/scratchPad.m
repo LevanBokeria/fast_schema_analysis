@@ -1,6 +1,8 @@
 %% Estimate learning rates
 clear; clc;
 
+warning('off','MATLAB:table:RowsAddedExistingVars')
+
 %% Load and prepare the dataset
 
 df = readtable('./results/pilots/preprocessed_data/mean_by_rep_all_types_long.csv');
@@ -13,8 +15,8 @@ df = df(indices,:);
 all_ptp = unique(df.ptp_trunk);
 n_ptp = length(all_ptp);
 
-all_conditions = unique(df.condition);
-all_accuracy_types = unique(df.accuracy_type);
+all_conditions        = unique(df.condition);
+all_accuracy_types    = unique(df.accuracy_type);
 all_neighbor_statuses = unique(df.neighbor_status);
 
 %% Start the for loop
@@ -25,12 +27,23 @@ tbl = table;
 
 ctr = 1;
 for iPtp = 1:n_ptp
-    
+    iPtp
     for iCond = 1:length(all_conditions)
+        iCond
         
         for iAccType = 1:length(all_accuracy_types)
-            
+            iAccType
             for iNeigh = 1:length(all_neighbor_statuses)
+                iNeigh
+                if strcmp(all_conditions{iCond},'no_schema') | strcmp(all_conditions{iCond},'random_locations')
+                    
+                    if strcmp(all_neighbor_statuses{iNeigh},'island') | strcmp(all_neighbor_statuses{iNeigh},'neighbor')
+                    
+                        continue;
+                    
+                    end
+                    
+                end
                 
                 curr_ptp   = all_ptp{iPtp};
                 curr_cond  = all_conditions{iCond};
@@ -43,13 +56,13 @@ for iPtp = 1:n_ptp
                     strcmp(df.neighbor_status,curr_neigh) &...
                     strcmp(df.accuracy_type,curr_acc));
                 
-                y = str2double(y);
+%                 y = str2double(y);
                 
                 % Now fit the data
                 [out_params,fval] = est_learning_rate(y',params,plotFMSEstimation);
                 
                 % Save in a table
-                tbl.ptp{ctr} = curr_ptp;
+                tbl.ptp_trunk{ctr} = curr_ptp;
                 tbl.condition{ctr} = curr_cond;
                 tbl.neighbor_status{ctr} = curr_neigh;
                 tbl.accuracy_type{ctr} = curr_acc;
@@ -62,3 +75,7 @@ for iPtp = 1:n_ptp
         end
     end
 end
+
+%% Save the table
+writetable(tbl,'./results/pilots/preprocessed_data/learning_rate_fits_matlab.csv');
+
