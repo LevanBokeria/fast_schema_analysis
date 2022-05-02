@@ -35,106 +35,163 @@ session_results_all_ptp <- session_results_all_ptp %>%
 
 ptp_to_filter <- c() # so EXCLUDE these
 
-border_away_to_analyze <- c(1,2,3,4,5) # so KEEP these
+border_away_to_analyze <- c(3,4,5) # so KEEP these
 
-# Permutation-based chance level ##############################################
-results <- list()
+load_existing_data <- T
 
-# A giant matrix approach --------------------------------------------------
-df_all_ptp <- session_results_all_ptp %>%
-        filter(!ptp_trunk %in% ptp_to_filter) %>% 
-        filter(border_dist %in% border_away_to_analyze) %>%
-        filter(!condition %in% c('practice','practice2'),
-               session == 2) %>%
-        droplevels() %>%
-        select(ptp_trunk,condition,
-               row,col,corr_row,corr_col,
-               correct_exact,correct_one_square_away,border_dist)
-
-ctr <- 1
-
-niter <- 10000
-
-for (iPtp in levels(df_all_ptp$ptp_trunk)){
+saveData <- F
+# Start analysis ###########################################################
+if (load_existing_data){
         
-        print(iPtp)
+        results_bound <- import(
+                paste0(
+                        './results/pilots/preprocessed_data/qc_permutations_raw_across_conditions_border_dist_',
+                        paste(border_away_to_analyze,collapse = '_'),
+                        '.csv'
+                ))
         
-        df <- df_all_ptp %>%
-                filter(ptp_trunk == iPtp) %>%
+        df_percentile <- import(
+                paste0(
+                        './results/pilots/preprocessed_data/qc_permutations_summary_across_conditions_border_dist_',
+                        paste(border_away_to_analyze,collapse = '_'),
+                        '.csv'
+                )
+        )
+        
+        niter <- df_percentile$n_perm[1]
+        
+} else {
+        # Permutation-based chance level ##############################################
+        results <- list()
+        
+        # A giant matrix approach --------------------------------------------------
+        df_all_ptp <- session_results_all_ptp %>%
+                filter(!ptp_trunk %in% ptp_to_filter) %>% 
+                filter(border_dist %in% border_away_to_analyze) %>%
+                filter(!condition %in% c('practice','practice2'),
+                       session == 2) %>%
                 droplevels() %>%
-                as.data.frame(row.names = 1:nrow(.))
+                select(ptp_trunk,condition,
+                       row,col,corr_row,corr_col,
+                       correct_exact,correct_one_square_away,border_dist,adjascent_neighbor)
         
-        # Replicate
-        df <- rbindlist(replicate(niter,df,simplify = F), idcol = 'id')
+        df_all_ptp <- df_all_ptp %>%
+                filter(adjascent_neighbor == FALSE)
         
-        # Create a column containing shuffling indices
-        df <- df %>%
-                group_by(ptp_trunk,id) %>%
-                mutate(rand_idx = sample(n())) %>%
-                ungroup()
+        ctr <- 1
+        
+        niter <- 10000
+        
+        for (iPtp in levels(df_all_ptp$ptp_trunk)){
                 
-        # Shuffle the correct row col and calculate the accuracy
-        df <- df %>%
-                group_by(ptp_trunk,id) %>%
-                mutate(corr_row_shuff = corr_row[rand_idx],
-                       corr_col_shuff = corr_col[rand_idx],
-                       rc_dist_euclid_shuff = sqrt(
-                               (corr_row_shuff-row)^2 + (corr_col_shuff-col)^2
-                       ),
-                       correct_exact_shuff = as.numeric(
-                               (corr_row_shuff == corr_row) & 
-                               (corr_col_shuff == corr_col)
+                print(iPtp)
+                
+                df <- df_all_ptp %>%
+                        filter(ptp_trunk == iPtp) %>%
+                        droplevels() %>%
+                        as.data.frame(row.names = 1:nrow(.))
+                
+                # Replicate
+                df <- rbindlist(replicate(niter,df,simplify = F), idcol = 'id')
+                
+                # Create a column containing shuffling indices
+                df <- df %>%
+                        group_by(ptp_trunk,id) %>%
+                        mutate(rand_idx = sample(n())) %>%
+                        ungroup()
+                
+                # Shuffle the correct row col and calculate the accuracy
+                df <- df %>%
+                        group_by(ptp_trunk,id) %>%
+                        mutate(corr_row_shuff = corr_row[rand_idx],
+                               corr_col_shuff = corr_col[rand_idx],
+                               rc_dist_euclid_shuff = sqrt(
+                                       (corr_row_shuff-row)^2 + (corr_col_shuff-col)^2
                                ),
-                       correct_one_square_away_shuff = case_when(
-                               abs(rc_dist_euclid_shuff) < 1.9 ~ 1,
-                               TRUE ~ 0
-                       )) %>%
-                ungroup()
+                               correct_exact_shuff = as.numeric(
+                                       (corr_row_shuff == corr_row) & 
+                                               (corr_col_shuff == corr_col)
+                               ),
+                               correct_one_square_away_shuff = case_when(
+                                       abs(rc_dist_euclid_shuff) < 1.9 ~ 1,
+                                       TRUE ~ 0
+                               )) %>%
+                        ungroup()
+                
+                # Now, just distill down to a summary statistic across trials
+                df <- df %>%
+                        group_by(ptp_trunk,id) %>%
+                        summarise(mean_correct_one_square_away_shuff = mean(correct_one_square_away_shuff, na.rm = T),
+                                  mean_correct_one_square_away       = mean(correct_one_square_away, na.rm = T),
+                                  mean_correct_exact_shuff = mean(correct_exact_shuff, na.rm = T),
+                                  mean_correct_exact       = mean(correct_exact, na.rm = T)) %>%
+                        ungroup()
+                
+                # Get the percentile, and distill even further
+                # df_sum <- df %>%
+                #         group_by(ptp_trunk,condition) %>%
+                #         summarise(n_perm_less = sum(
+                #                 mean_correct_one_square_away_shuff < mean(mean_correct_one_square_away, na.rm = T)
+                #                 ),
+                #                 n_perm = n(),
+                #                 percentile = n_perm_less * 100 / n_perm) %>%
+                #         ungroup()
+                
+                results[[ctr]] <- df
+                
+                ctr <- ctr + 1
+                
+        }
         
-        # Now, just distill down to a summary statistic across trials
-        df <- df %>%
-                group_by(ptp_trunk,id) %>%
-                summarise(mean_correct_one_square_away_shuff = mean(correct_one_square_away_shuff, na.rm = T),
-                          mean_correct_one_square_away       = mean(correct_one_square_away, na.rm = T),
-                          mean_correct_exact_shuff = mean(correct_exact_shuff, na.rm = T),
-                          mean_correct_exact       = mean(correct_exact, na.rm = T)) %>%
-                ungroup()
+        results_bound <- rbindlist(results, idcol = 'id_ptp')
         
         # Get the percentile, and distill even further
-        # df_sum <- df %>%
-        #         group_by(ptp_trunk,condition) %>%
-        #         summarise(n_perm_less = sum(
-        #                 mean_correct_one_square_away_shuff < mean(mean_correct_one_square_away, na.rm = T)
-        #                 ),
-        #                 n_perm = n(),
-        #                 percentile = n_perm_less * 100 / n_perm) %>%
-        #         ungroup()
+        df_percentile <- results_bound %>%
+                group_by(ptp_trunk) %>%
+                summarise(n_perm = n(),
+                          mean_correct_one_square_away = mean(mean_correct_one_square_away, na.rm = T),
+                          mean_correct_exact           = mean(mean_correct_exact, na.rm = T),
+                          n_perm_less_correct_one_square_away = sum(
+                                  mean_correct_one_square_away_shuff < mean_correct_one_square_away
+                          ),
+                          n_perm_less_correct_exact = sum(
+                                  mean_correct_exact_shuff < mean_correct_exact
+                          ),            
+                          percentile_sim_correct_one_square_away = 
+                                  n_perm_less_correct_one_square_away * 100 / n_perm,
+                          percentile_sim_correct_exact = 
+                                  n_perm_less_correct_exact * 100 / n_perm,                ) %>%
+                ungroup()
         
-        results[[ctr]] <- df
         
-        ctr <- ctr + 1
+        # Did any fail? ---------------------------------------------------------------
+        
+        threshold <- 95
+        
+        df_percentile <- df_percentile %>%
+                mutate(qc_fail_correct_one_square_away = percentile_sim_correct_one_square_away <= threshold,
+                       qc_fail_correct_exact = percentile_sim_correct_exact <= threshold)
+        
+        # Save the df
+        if (saveData){
+                results_bound %>% write_csv(
+                        paste0(
+                                './results/pilots/preprocessed_data/qc_permutations_raw_across_conditions_border_dist_',
+                                paste(border_away_to_analyze,collapse = '_'),
+                                '.csv'
+                        )
+                )
+                df_percentile %>% write_csv(
+                        paste0(
+                                './results/pilots/preprocessed_data/qc_permutations_summary_across_conditions_border_dist_',
+                                paste(border_away_to_analyze,collapse = '_'),
+                                '.csv'
+                        )
+                )
+        }
         
 }
 
-results_bound <- rbindlist(results, idcol = 'id_ptp')
-
-# Get the percentile, and distill even further
-df_percentile <- results_bound %>%
-        group_by(ptp_trunk) %>%
-        summarise(n_perm = n(),
-                mean_correct_one_square_away = mean(mean_correct_one_square_away, na.rm = T),
-                mean_correct_exact           = mean(mean_correct_exact, na.rm = T),
-                n_perm_less_correct_one_square_away = sum(
-                mean_correct_one_square_away_shuff < mean_correct_one_square_away
-                ),
-                n_perm_less_correct_exact = sum(
-                        mean_correct_exact_shuff < mean_correct_exact
-                ),            
-                percentile_sim_correct_one_square_away = 
-                        n_perm_less_correct_one_square_away * 100 / n_perm,
-                percentile_sim_correct_exact = 
-                        n_perm_less_correct_exact * 100 / n_perm,                ) %>%
-        ungroup()
 
 # Plot ------------------------------------------------------------------------
 
@@ -170,27 +227,5 @@ fig2 <- results_bound %>%
 
 print(fig2)
 
-# Did any fail? ---------------------------------------------------------------
 
-threshold <- 95
-
-df_percentile <- df_percentile %>%
-        mutate(qc_fail_correct_one_square_away = percentile_sim_correct_one_square_away <= threshold,
-               qc_fail_correct_exact = percentile_sim_correct_exact <= threshold)
-
-# Save the df
-results_bound %>% write_csv(
-        paste0(
-                './results/pilots/preprocessed_data/qc_permutations_raw_across_conditions_border_dist_',
-                paste(border_away_to_analyze,collapse = '_'),
-                '.csv'
-                )
-        )
-df_percentile %>% write_csv(
-        paste0(
-                './results/pilots/preprocessed_data/qc_permutations_summary_across_conditions_border_dist_',
-                paste(border_away_to_analyze,collapse = '_'),
-                '.csv'
-        )
-)
 

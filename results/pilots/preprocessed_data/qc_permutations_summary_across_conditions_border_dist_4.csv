@@ -1,0 +1,12 @@
+ptp_trunk,n_perm,mean_correct_one_square_away,mean_correct_exact,n_perm_less_correct_one_square_away,n_perm_less_correct_exact,percentile_sim_correct_one_square_away,percentile_sim_correct_exact,qc_fail_correct_one_square_away,qc_fail_correct_exact
+5c9a698...,10000,0.65,0.2,10000,1443,100,14.43,FALSE,TRUE
+5d776e2...,10000,0.6,0.2,10000,1364,100,13.64,FALSE,TRUE
+5dc983b...,10000,0.4,0.05,9409,6,94.09,0.06,TRUE,TRUE
+5e8e505...,10000,0.55,0.05,10000,9,100,0.09,FALSE,TRUE
+5f57c4a...,10000,0.5,0.15,9995,457,99.95,4.57,FALSE,TRUE
+5f91927...,10000,0.8,0.15,10000,474,100,4.74,FALSE,TRUE
+6047ae5...,10000,0.85,0.1,10000,89,100,0.89,FALSE,TRUE
+604fa68...,10000,0.45,0.2,9652,1377,96.52,13.77,FALSE,TRUE
+609478f...,10000,0.3,0.1,9431,92,94.31,0.92,TRUE,TRUE
+60e43d1...,10000,0.9,0.35,10000,6891,100,68.91,FALSE,TRUE
+615a170...,10000,0.9,0.2,10000,1397,100,13.97,FALSE,TRUE
