@@ -1,7 +1,6 @@
 # Description ####
 
 
-
 # Clean the environment and load libraries ############################
 
 rm(list=ls())
