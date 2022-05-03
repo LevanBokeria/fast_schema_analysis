@@ -11,6 +11,9 @@ df = readtable('./results/pilots/preprocessed_data/mean_by_rep_all_types_long.cs
 indices = strcmp(df.accuracy_type,'correct_exact') | strcmp(df.accuracy_type,'correct_one_square_away');
 df = df(indices,:);
 
+% Transform strings to doubles
+df.correct_mean = str2double(df.correct_mean);
+df.correct_sd = str2double(df.correct_sd);
 
 all_ptp = unique(df.ptp_trunk);
 n_ptp = length(all_ptp);

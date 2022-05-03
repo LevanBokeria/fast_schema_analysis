@@ -17,9 +17,13 @@ function [out_params,fval] = est_learning_rate(ptp_data,params,plotEstimation)
         
         % For optimize both rate and offset
         y_hat = x(1) + (1 - exp(-x(2) * (trials - 1))) * (1-x(1))';
-                
-        sse = nansum(abs(ptp_data - y_hat).^2);
         
+        % If the intercept is below 0, have a terrible sse
+        if x(1) < 0 
+            sse = Inf;
+        else
+            sse = nansum(abs(ptp_data - y_hat).^2);
+        end
     end
 
 end

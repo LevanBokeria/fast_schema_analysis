@@ -1,6 +1,0 @@
-ptp_trunk,condition,mean_correct_one_square_away,n_perm_less,n_perm,percentile_sim,qc_fail
-609478f...,schema_c,0.041666666666666664,5830,10000,58.3,TRUE
-609478f...,schema_ic,0.08333333333333333,2423,10000,24.23,TRUE
-609478f...,landmark_schema,0.20833333333333334,9062,10000,90.62,TRUE
-609478f...,random_locations,0.08333333333333333,3484,10000,34.84,TRUE
-609478f...,no_schema,0.8333333333333334,10000,10000,100,FALSE

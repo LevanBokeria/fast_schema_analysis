@@ -28,7 +28,7 @@ session_results_all_ptp <- session_results_all_ptp %>%
         
 # Define flags and filtering conditions ######################################
 
-border_away_to_analyze <- c(1,2,3,4,5) # so KEEP these
+border_away_to_analyze <- c(3,4,5) # so KEEP these
 
 saveData <- F
 # Load the data ###########################################################

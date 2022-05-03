@@ -21,4 +21,5 @@ pacman::p_load(pacman,
                Hmisc,
                psycho,
                data.table,
-               pdist)
+               pdist,
+               moments)
