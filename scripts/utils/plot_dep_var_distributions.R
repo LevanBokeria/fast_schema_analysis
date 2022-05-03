@@ -72,4 +72,62 @@ sum_stats_each_participant %>%
 # Plot for learning fits now ###################################################
 
 ## Load the data -----------------------------------------------------------
+ml_fits <- import('./results/pilots/preprocessed_data/learning_rate_fits_matlab.csv')
+
+## Plots ---------------------------------------------------------------------
+
+lr_skew_each_cond <- ml_fits %>%
+        filter(neighbor_status == 'both',
+               accuracy_type %in% c('correct_exact','correct_one_square_away')) %>%
+        droplevels() %>%
+        group_by(condition,
+                 accuracy_type) %>%
+        summarise(skew = skewness(learning_rate, na.rm = T))
+
+lr_skew_across_cond <- ml_fits %>%
+        filter(neighbor_status == 'both',
+               accuracy_type %in% c('correct_exact','correct_one_square_away')) %>%
+        droplevels() %>%
+        group_by(accuracy_type) %>%
+        summarise(skew = skewness(learning_rate, na.rm = T))
+
+
+ml_fits %>%
+        filter(neighbor_status == 'both',
+               accuracy_type %in% c('correct_exact','correct_one_square_away')) %>%
+        droplevels() %>%
+        ggplot(aes(x=learning_rate)) +
+        geom_histogram() +
+        geom_density() +
+        facet_grid(accuracy_type~condition) +
+        ggtitle('all PAs; By condition') +
+        geom_text(data=lr_skew_each_cond,
+                  aes(x=0.4,y=5,
+                      label = round(skew,2)))
+
+
+ml_fits %>%
+        filter(neighbor_status == 'both',
+               accuracy_type %in% c('correct_exact','correct_one_square_away')) %>%
+        droplevels() %>%
+        ggplot(aes(x=learning_rate)) +
+        geom_histogram() +
+        geom_density() +
+        facet_wrap(~accuracy_type, ncol = 1) +
+        ggtitle('all PAs; across conditions') +
+        geom_text(data=lr_skew_across_cond,
+                  aes(x=0.4,y=6,
+                      label = round(skew,2))) 
+
+
+
+# Plot for mouse euclidean distance #####################################################
+
+
+
+
+
+
+
+
 

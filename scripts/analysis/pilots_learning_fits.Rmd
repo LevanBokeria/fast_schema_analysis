@@ -27,7 +27,7 @@ c_start <- 0.1
 # Create lower and upper bound constraints on the asymptote and learning rate
 c_lower <- -Inf
 c_upper <- Inf
-i_lower <- -Inf
+i_lower <- 0
 i_upper <- Inf
 
 qc_filter <- F

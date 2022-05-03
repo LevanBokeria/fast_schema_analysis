@@ -35,7 +35,7 @@ session_results_all_ptp <- session_results_all_ptp %>%
 
 ptp_to_filter <- c() # so EXCLUDE these
 
-border_away_to_analyze <- c(3,4,5) # so KEEP these
+border_away_to_analyze <- c(1,2,3,4,5) # so KEEP these
 
 load_existing_data <- T
 

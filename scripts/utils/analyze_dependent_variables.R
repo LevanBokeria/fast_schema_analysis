@@ -2,6 +2,7 @@
 
 ## Load all the libraries ----------------------------------------------------
 source('./scripts/utils/load_all_libraries.R')
+source('./scripts/utils/functions_for_fitting_learning_curves.R')
 
 
 ## Load the data -------------------------------------------------------------
@@ -10,6 +11,21 @@ session_results_all_ptp <- import(
         './results/pilots/preprocessed_data/session_results_long_form.csv')
 
 ## Define flags --------------------------------------------------------------
+
+# If learning fit bounds don't exist
+if (!exists('i_lower')){
+        
+        # Create parameters as starting points for estimations
+        i_start <- 0.5
+        c_start <- 0.1
+        
+        # Create lower and upper bound constraints on the asymptote and learning rate
+        c_lower <- 0
+        c_upper <- 20
+        i_lower <- 0
+        i_upper <- 1
+        
+}
 
 # If qc_filter variable doesnt exist, create it
 if (!exists('qc_filter')){
@@ -66,11 +82,12 @@ if (exclude_border){
 ## Create long form accuracy type
 session_results_all_ptp_long_accuracy <- 
         session_results_all_ptp %>%
-        pivot_longer(cols = starts_with("correct_"),
+        pivot_longer(cols = c(starts_with("correct_"),'mouse_dist_euclid'),
                      names_to = 'accuracy_type',
                      values_to = 'accuracy_value') %>%
         mutate(accuracy_type = as.factor(accuracy_type)) %>%
         reorder_levels(accuracy_type, order = c(
+                'mouse_dist_euclid',
                 'correct_exact',
                 'correct_one_square_away',
                 'correct_rad_21',
@@ -348,7 +365,6 @@ sum_stats_each_participant <- merge(sum_stats_each_participant,
                                     all = TRUE)
 
 # Remove extra variables #####################################################
-rm(learning_and_intercept_each_participant)
 rm(mean_by_rep_all_types_long_1)
 rm(mean_by_rep_all_types_long_2)
 rm(mean_by_rep_all_types_long_3)

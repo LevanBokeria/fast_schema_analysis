@@ -230,7 +230,54 @@ fig_each_ptp <- mean_by_rep_all_types_long %>%
 
 print(fig_each_ptp)
 
+# Now, plot with euclidean distance
 
+# Plot the fits
+fig_each_ptp <- mean_by_rep_all_types_long %>%
+        filter(accuracy_type %in% c('mouse_dist_euclid'),
+               neighbor_status == 'both') %>%
+        droplevels() %>%        
+        ggplot(aes(x=new_pa_img_row_number_across_sessions,
+                   y=correct_mean)) +
+        geom_point() +
+        geom_line(size=1) +
+
+        # Add the y_hat learning and intercept
+        geom_line(aes(x=new_pa_img_row_number_across_sessions,
+                      y=y_hat_i_c),
+                  size=1,
+                  color='red',
+                  linetype = 'longdash') +
+
+        facet_grid(ptp_trunk~condition) +
+        ggtitle(paste('One square away: real and estimate data',sep='')) +
+        xlab('Image repetition') +
+        ylab('Mouse euclidean distance ') +
+        scale_x_continuous(breaks=c(1,2,3,4,5,6,7,8)) +
+        # theme(legend.position = 'top') +
+        geom_vline(xintercept = 4.5, linetype = 'dashed') +
+        geom_text(data=filter(
+                learning_and_intercept_each_participant,
+                accuracy_type %in% c('mouse_dist_euclid'),
+                neighbor_status == 'both'
+                ),
+                aes(x=5.5,
+                    y=0.15,
+                    label = paste('conv=',
+                                  as.character(convergence),
+                                  ' ',
+                                  'i=',
+                                  as.character(round(i,2)),
+                                  ' ',
+                                  'c=',
+                                  as.character(round(c,2)),
+                                  seq='')))
+        # geom_text(data=learning_only_each_participant,
+        #           aes(x=7,y=0.05, label = paste('c=',as.character(round(c,2)),seq='')))        
+        # annotate('text',x=1.5,y = 0.85, label = learning_and_asymptote_each_participant$a ,size=3)
+
+
+print(fig_each_ptp)
 
 ```
 
