@@ -124,14 +124,7 @@ mean_by_landmark_rep_long <-
         summarise(correct_mean = mean(accuracy_value, na.rm = T),
                   correct_sd = sd(accuracy_value, na.rm = T),
                   correct_n = as.numeric(n())) %>%
-        ungroup() %>%
-        mutate(across(c(correct_mean,
-                        correct_sd,
-                        correct_n),
-                      ~ case_when(
-                              is.na(near_pa) ~ as.numeric(NA),
-                              TRUE ~ .
-                      )))
+        ungroup() 
 
 # Combine these
 mean_by_rep_all_types_long <- bind_rows(mean_by_rep_long,mean_by_landmark_rep_long)
@@ -283,7 +276,7 @@ last_two_reps_stats <-
                  new_pa_status,
                  accuracy_type) %>%
         summarise(last_two_mean = mean(correct_mean),
-                  last_two_sd   = sd(correct_sd)) %>%
+                  last_two_sd   = sd(correct_mean)) %>%
         ungroup()
 
 last_four_reps_stats <-
@@ -294,7 +287,7 @@ last_four_reps_stats <-
                  new_pa_status,
                  accuracy_type) %>%
         summarise(last_four_mean = mean(correct_mean),
-                  last_four_sd   = sd(correct_sd)) %>%
+                  last_four_sd   = sd(correct_mean)) %>%
         ungroup()
 
 # Create one variable, that will have all the dependent variables
@@ -327,6 +320,17 @@ sum_stats_each_participant <- merge(sum_stats_each_participant,
                                            'accuracy_type'),
                                     all = TRUE)
 
-
+## For each border distance -----------------------------------------------
+last_four_reps_by_border_dist_stats <-
+        mean_by_border_dist_rep_long %>%
+        filter(new_pa_img_row_number_across_sessions %in% c(5,6,7,8)) %>% 
+        group_by(ptp_trunk,
+                 condition,
+                 border_dist,
+                 accuracy_type) %>%
+        summarise(last_four_mean = mean(correct_mean, na.rm = T),
+                  last_four_sd   = sd(correct_mean, na.rm = T),
+                  n = n()) %>%
+        ungroup()
 
 
