@@ -164,11 +164,11 @@ for (iName in filenames){
                 ungroup()
         
         
-        # Mark which of the new PA items are the neighbors in all conditions
+        # Mark which of the new PA items are the far_pas in all conditions
         all_conditions <- c('schema_c','schema_ic','landmark_schema')
         
         # - create the column with just NAs at first
-        session_results$adjacent_neighbor <- NA        
+        session_results$adjacent_far_pa <- NA        
                 
         for (iCond in all_conditions){
                 
@@ -188,20 +188,20 @@ for (iName in filenames){
                 # - Now, find the indices of those rows that are next to schema PAs:
                 distances <- as.matrix(pdist(as.matrix(new_pa_coords),as.matrix(schema_pa_coords)))
                 
-                # - Find the coordinates of the neighbor
-                neighbor_new_pas <- which(distances <= sqrt(2)+0.1,arr.ind=TRUE)
-                neighbor_new_pas <- neighbor_new_pas[,'row'] 
+                # - Find the coordinates of the far_pa
+                far_pa_new_pas <- which(distances <= sqrt(2)+0.1,arr.ind=TRUE)
+                far_pa_new_pas <- far_pa_new_pas[,'row'] 
                 
-                neighbor_new_pa_names <- all_new_pas[neighbor_new_pas]
+                far_pa_new_pa_names <- all_new_pas[far_pa_new_pas]
                 
-                # Now, for this condition, wherever the newPA is a neighbor, mark TRUE. Else mark FALSE
-                session_results$adjacent_neighbor[
+                # Now, for this condition, wherever the newPA is a far_pa, mark TRUE. Else mark FALSE
+                session_results$adjacent_far_pa[
                         session_results$condition == iCond & 
-                                session_results$new_pa_img %in% neighbor_new_pa_names] <- 
+                                session_results$new_pa_img %in% far_pa_new_pa_names] <- 
                         TRUE
-                session_results$adjacent_neighbor[
+                session_results$adjacent_far_pa[
                         session_results$condition == iCond & 
-                                !session_results$new_pa_img %in% neighbor_new_pa_names] <- 
+                                !session_results$new_pa_img %in% far_pa_new_pa_names] <- 
                         FALSE                
                 
         }

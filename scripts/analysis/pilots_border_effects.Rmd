@@ -154,24 +154,24 @@ for (iPtp in as.vector(all_ptp)){
 
 ## Rough measures: last 2 reps and last 4 reps
 
-### Island vs Neighbor:
+### near_pa vs far_pa:
 
 
 ```{r plot-rough-measures-last-two-lm-non-lm, fig.width=6, fig.height=4}
 
 # Last 4
 sum_stats_each_participant %>%
-        filter(neighbor_status != 'both',
+        filter(far_pa_status != 'both',
                !condition %in% c('random_locations','no_schema'),
                accuracy_type %in% c('correct_exact','correct_one_square_away')) %>%
         droplevels() %>%
         pivot_wider(id_cols = c(ptp_trunk,
                                 condition,
                                 accuracy_type),
-                    names_from = neighbor_status,
+                    names_from = far_pa_status,
                     values_from = last_four_mean) %>% 
-        mutate(neighbor_diff = neighbor - island) %>%
-        ggplot(aes(x=condition,y=neighbor_diff)) +
+        mutate(far_pa_diff = far_pa - near_pa) %>%
+        ggplot(aes(x=condition,y=far_pa_diff)) +
         geom_violin() +
         # geom_jitter(width = 0.1, alpha = 0.2) +
         geom_dotplot(binaxis='y', stackdir='center',
@@ -192,17 +192,17 @@ sum_stats_each_participant %>%
 
 # Last 4
 sum_stats_each_participant %>%
-        filter(neighbor_status != 'both',
+        filter(far_pa_status != 'both',
                !condition %in% c('random_locations','no_schema'),
                accuracy_type %in% c('correct_exact','correct_one_square_away')) %>%
         droplevels() %>%
         pivot_wider(id_cols = c(ptp_trunk,
                                 condition,
                                 accuracy_type),
-                    names_from = neighbor_status,
+                    names_from = far_pa_status,
                     values_from = log_last_four_mean) %>% 
-        mutate(neighbor_diff = neighbor - island) %>%
-        ggplot(aes(x=condition,y=neighbor_diff)) +
+        mutate(far_pa_diff = far_pa - near_pa) %>%
+        ggplot(aes(x=condition,y=far_pa_diff)) +
         geom_violin() +
         # geom_jitter(width = 0.1, alpha = 0.2) +
         geom_dotplot(binaxis='y', stackdir='center',
@@ -225,22 +225,22 @@ sum_stats_each_participant %>%
 
 ## Learning rates:
 
-### Island vs Neighbor:
+### near_pa vs far_pa:
 
-First, plot the island and neighbor values on separate plots:
+First, plot the near_pa and far_pa values on separate plots:
 
 We see that for correct_one_square_away we get some "outlier" learning rate parameter estimates.
 
 ```{r scatter-plots-learning-rates-landmark, fig.width=8, fig.height=6}
 
 sum_stats_each_participant %>%
-        filter(neighbor_status != 'both',
+        filter(far_pa_status != 'both',
                accuracy_type %in% c('correct_exact'),
                !condition %in% c('random_locations','no_schema')) %>%
         droplevels() %>%
-        ggplot(aes(x=neighbor_status,
+        ggplot(aes(x=far_pa_status,
                    y=c,
-                   fill=neighbor_status)) +
+                   fill=far_pa_status)) +
         geom_violin(alpha=0.5) +
         geom_boxplot(width=0.2,
                      alpha=0.2) +
@@ -258,13 +258,13 @@ sum_stats_each_participant %>%
         ylab('Learning Rate C')
 
 sum_stats_each_participant %>%
-        filter(neighbor_status != 'both',
+        filter(far_pa_status != 'both',
                accuracy_type %in% c('correct_one_square_away'),
                !condition %in% c('random_locations','no_schema')) %>%
         droplevels() %>%
-        ggplot(aes(x=neighbor_status,
+        ggplot(aes(x=far_pa_status,
                    y=c,
-                   fill=neighbor_status)) +
+                   fill=far_pa_status)) +
         geom_violin(alpha=0.5) +
         geom_boxplot(width=0.2,
                      alpha=0.2) +
@@ -283,13 +283,13 @@ sum_stats_each_participant %>%
 
 # Log C
 sum_stats_each_participant %>%
-        filter(neighbor_status != 'both',
+        filter(far_pa_status != 'both',
                accuracy_type %in% c('correct_exact'),
                !condition %in% c('random_locations','no_schema')) %>%
         droplevels() %>%
-        ggplot(aes(x=neighbor_status,
+        ggplot(aes(x=far_pa_status,
                    y=c_log,
-                   fill=neighbor_status)) +
+                   fill=far_pa_status)) +
         geom_violin(alpha=0.5) +
         geom_boxplot(width=0.2,
                      alpha=0.2) +
@@ -308,13 +308,13 @@ sum_stats_each_participant %>%
         ggtitle('Log C')
 
 sum_stats_each_participant %>%
-        filter(neighbor_status != 'both',
+        filter(far_pa_status != 'both',
                accuracy_type %in% c('correct_one_square_away'),
                !condition %in% c('random_locations','no_schema')) %>%
         droplevels() %>%
-        ggplot(aes(x=neighbor_status,
+        ggplot(aes(x=far_pa_status,
                    y=c_log,
-                   fill=neighbor_status)) +
+                   fill=far_pa_status)) +
         geom_violin(alpha=0.5) +
         geom_boxplot(width=0.2,
                      alpha=0.2) +
@@ -336,21 +336,21 @@ sum_stats_each_participant %>%
 
 Plot the difference values:
 
-```{r learning-rates-difference-neighbor-island, fig.width=5, fig.height=4}
+```{r learning-rates-difference-far_pa-near_pa, fig.width=5, fig.height=4}
 
 # Learning rates
 sum_stats_each_participant %>%
-        filter(neighbor_status != 'both',
+        filter(far_pa_status != 'both',
                !condition %in% c('random_locations','no_schema'),
                accuracy_type %in% c('correct_one_square_away')) %>%
         droplevels() %>%
         pivot_wider(id_cols = c(ptp_trunk,
                                 condition,
                                 accuracy_type),
-                    names_from = neighbor_status,
+                    names_from = far_pa_status,
                     values_from = c) %>% 
-        mutate(neighbor_diff = neighbor - island) %>% 
-        ggplot(aes(x=condition,y=neighbor_diff)) +
+        mutate(far_pa_diff = far_pa - near_pa) %>% 
+        ggplot(aes(x=condition,y=far_pa_diff)) +
         geom_violin() +
         # geom_jitter(width = 0.1, alpha = 0.2) +
         # geom_dotplot(binaxis='y', stackdir='center',
@@ -372,17 +372,17 @@ sum_stats_each_participant %>%
 
 # Learning rates
 sum_stats_each_participant %>%
-        filter(neighbor_status != 'both',
+        filter(far_pa_status != 'both',
                !condition %in% c('random_locations','no_schema'),
                accuracy_type %in% c('correct_exact')) %>%
         droplevels() %>%
         pivot_wider(id_cols = c(ptp_trunk,
                                 condition,
                                 accuracy_type),
-                    names_from = neighbor_status,
+                    names_from = far_pa_status,
                     values_from = c) %>% 
-        mutate(neighbor_diff = neighbor - island) %>% 
-        ggplot(aes(x=condition,y=neighbor_diff)) +
+        mutate(far_pa_diff = far_pa - near_pa) %>% 
+        ggplot(aes(x=condition,y=far_pa_diff)) +
         geom_violin() +
         # geom_jitter(width = 0.1, alpha = 0.2) +
         # geom_dotplot(binaxis='y', stackdir='center',
@@ -406,17 +406,17 @@ sum_stats_each_participant %>%
 # Now log C
 # Learning rates
 sum_stats_each_participant %>%
-        filter(neighbor_status != 'both',
+        filter(far_pa_status != 'both',
                !condition %in% c('random_locations','no_schema'),
                accuracy_type %in% c('correct_one_square_away')) %>%
         droplevels() %>%
         pivot_wider(id_cols = c(ptp_trunk,
                                 condition,
                                 accuracy_type),
-                    names_from = neighbor_status,
+                    names_from = far_pa_status,
                     values_from = c_log) %>% 
-        mutate(neighbor_diff = neighbor - island) %>% 
-        ggplot(aes(x=condition,y=neighbor_diff)) +
+        mutate(far_pa_diff = far_pa - near_pa) %>% 
+        ggplot(aes(x=condition,y=far_pa_diff)) +
         geom_violin() +
         # geom_jitter(width = 0.1, alpha = 0.2) +
         # geom_dotplot(binaxis='y', stackdir='center',
@@ -438,17 +438,17 @@ sum_stats_each_participant %>%
 
 # Learning rates
 sum_stats_each_participant %>%
-        filter(neighbor_status != 'both',
+        filter(far_pa_status != 'both',
                !condition %in% c('random_locations','no_schema'),
                accuracy_type %in% c('correct_exact')) %>%
         droplevels() %>%
         pivot_wider(id_cols = c(ptp_trunk,
                                 condition,
                                 accuracy_type),
-                    names_from = neighbor_status,
+                    names_from = far_pa_status,
                     values_from = c_log) %>% 
-        mutate(neighbor_diff = neighbor - island) %>% 
-        ggplot(aes(x=condition,y=neighbor_diff)) +
+        mutate(far_pa_diff = far_pa - near_pa) %>% 
+        ggplot(aes(x=condition,y=far_pa_diff)) +
         geom_violin() +
         # geom_jitter(width = 0.1, alpha = 0.2) +
         # geom_dotplot(binaxis='y', stackdir='center',

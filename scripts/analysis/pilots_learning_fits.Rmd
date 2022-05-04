@@ -71,7 +71,7 @@ sum_stats_each_participant <- merge(sum_stats_each_participant,
                                     ml_learning_rate,
                                     by = c('ptp_trunk',
                                            'condition',
-                                           'neighbor_status',
+                                           'far_pa_status',
                                            'accuracy_type'),
                                     all.x = T)
 
@@ -86,7 +86,7 @@ learning_and_intercept_each_participants_y_hat_ml <-
         ml_learning_rate %>%
         group_by(ptp_trunk,
                  condition,
-                 neighbor_status,
+                 far_pa_status,
                  accuracy_type) %>% 
         mutate(y_hat_i_c_ml = list(fit_learning_and_intercept(c(intercept,learning_rate),
                                                            seq(1:8),
@@ -97,7 +97,7 @@ learning_and_intercept_each_participants_y_hat_ml <-
                  new_pa_img_row_number_across_sessions)) %>% 
         select(c(ptp_trunk,
                  condition,
-                 neighbor_status,
+                 far_pa_status,
                  accuracy_type,
                  y_hat_i_c_ml,
                  new_pa_img_row_number_across_sessions)) %>%
@@ -107,7 +107,7 @@ mean_by_rep_all_types_long <- merge(mean_by_rep_all_types_long,
                                     learning_and_intercept_each_participants_y_hat_ml,
                                     by = c('ptp_trunk',
                                            'condition',
-                                           'neighbor_status',
+                                           'far_pa_status',
                                            'accuracy_type',
                                            'new_pa_img_row_number_across_sessions'),
                                     all = TRUE)
@@ -127,7 +127,7 @@ sum_stats_each_participant %>%
                                     'correct_one_square_away')) %>%
         ggplot(aes(x=i,
                    y=i_ml,
-                   color = neighbor_status)) +
+                   color = far_pa_status)) +
         geom_point() +
         facet_wrap(~accuracy_type)
 
@@ -136,7 +136,7 @@ sum_stats_each_participant %>%
         droplevels() %>%
         ggplot(aes(x=c,
                    y=c_ml,
-                   color = neighbor_status)) +
+                   color = far_pa_status)) +
         geom_point() +
         facet_wrap(~accuracy_type)
 
@@ -145,7 +145,7 @@ sum_stats_each_participant %>%
         droplevels() %>%
         ggplot(aes(x=c,
                    y=c_ml,
-                   color = neighbor_status)) +
+                   color = far_pa_status)) +
         geom_point() +
         facet_wrap(~accuracy_type)
 
@@ -181,7 +181,7 @@ Looking at those participants where the convergence failed, its unclear why it h
 # Plot the fits
 fig_each_ptp <- mean_by_rep_all_types_long %>%
         filter(accuracy_type %in% c('correct_exact'),
-               neighbor_status == 'both') %>%
+               far_pa_status == 'both') %>%
         droplevels() %>%        
         ggplot(aes(x=new_pa_img_row_number_across_sessions,
                    y=correct_mean)) +
@@ -212,7 +212,7 @@ fig_each_ptp <- mean_by_rep_all_types_long %>%
         geom_text(data=filter(
                 sum_stats_each_participant,
                 accuracy_type %in% c('correct_exact'),
-                neighbor_status == 'both'
+                far_pa_status == 'both'
                 ),
                 aes(x=4,
                     y=0.65,
@@ -238,7 +238,7 @@ print(fig_each_ptp)
 # Plot the fits
 fig_each_ptp <- mean_by_rep_all_types_long %>%
         filter(accuracy_type %in% c('correct_one_square_away'),
-               neighbor_status == 'both') %>%
+               far_pa_status == 'both') %>%
         droplevels() %>%        
         ggplot(aes(x=new_pa_img_row_number_across_sessions,
                    y=correct_mean)) +
@@ -269,7 +269,7 @@ fig_each_ptp <- mean_by_rep_all_types_long %>%
         geom_text(data=filter(
                 sum_stats_each_participant,
                 accuracy_type %in% c('correct_one_square_away'),
-                neighbor_status == 'both'
+                far_pa_status == 'both'
                 ),
                 aes(x=5.5,
                     y=0.15,
@@ -296,8 +296,8 @@ print(fig_each_ptp)
 
 ## Learning curves: Landmark vs non-landmark
 
-Neighbor PAs are coded as "neighbor".
-Non-neighbor PAs are coded as "island".
+far_pa PAs are coded as "far_pa".
+Non-far_pa PAs are coded as "near_pa".
 
 Again, two panels of plots for the two dependent variables: "exact correct" and "correct one square away".
 
@@ -309,13 +309,13 @@ We can see convergence in all but 1 case: 5d776e2... landmark_schema, one_square
 # Plot the fits
 fig_each_ptp_lm <- mean_by_rep_all_types_long %>%
         filter(accuracy_type %in% c('correct_exact'),
-               neighbor_status %in% c('island','neighbor'),
+               far_pa_status %in% c('near_pa','far_pa'),
                !condition %in% c('random_locations','no_schema')) %>%
         droplevels() %>%        
         ggplot(aes(x=new_pa_img_row_number_across_sessions,
                    y=correct_mean,
-                   group=neighbor_status,
-                   color=neighbor_status)) +
+                   group=far_pa_status,
+                   color=far_pa_status)) +
         geom_point(alpha = 0.1) +
         geom_line(size=0.5,
                   alpha = 0.1) +
@@ -344,7 +344,7 @@ fig_each_ptp_lm <- mean_by_rep_all_types_long %>%
         # geom_text(data=filter(
         #         sum_stats_each_participant,
         #         accuracy_type %in% c('correct_exact'),
-        #         neighbor_status %in% c('island','neighbor'),
+        #         far_pa_status %in% c('near_pa','far_pa'),
         #         !condition %in% c('random_locations','no_schema')
         #         ),
         #         aes(x=3.5,
@@ -371,13 +371,13 @@ print(fig_each_ptp_lm)
 # Plot the fits
 fig_each_ptp_lm <- mean_by_rep_all_types_long %>%
         filter(accuracy_type %in% c('correct_one_square_away'),
-               neighbor_status %in% c('island','neighbor'),
+               far_pa_status %in% c('near_pa','far_pa'),
                !condition %in% c('random_locations','no_schema')) %>%
         droplevels() %>%        
         ggplot(aes(x=new_pa_img_row_number_across_sessions,
                    y=correct_mean,
-                   group=neighbor_status,
-                   color=neighbor_status)) +
+                   group=far_pa_status,
+                   color=far_pa_status)) +
         geom_point(alpha=0.1) +
         geom_line(size=0.5,
                   alpha=0.1) +
@@ -405,7 +405,7 @@ fig_each_ptp_lm <- mean_by_rep_all_types_long %>%
         # geom_text(data=filter(
         #         sum_stats_each_participant,
         #         accuracy_type %in% c('correct_one_square_away'),
-        #         neighbor_status %in% c('island','neighbor'),
+        #         far_pa_status %in% c('near_pa','far_pa'),
         #         !condition %in% c('random_locations','no_schema')
         #         ),
         #         aes(x=3.5,
