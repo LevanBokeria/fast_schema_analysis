@@ -114,10 +114,11 @@ mean_by_rep_long <-
 # Calculate mean for far_pa vs non far_pa
 mean_by_landmark_rep_long <-
         session_results_all_ptp_long_accuracy %>%
+        filter(!condition %in% c('random_locations','no_schema')) %>%
         droplevels() %>%
         group_by(ptp_trunk,
                  condition,
-                 adjacent_far_pa,
+                 near_pa,
                  new_pa_img_row_number_across_sessions,
                  accuracy_type) %>%
         summarise(correct_mean = mean(accuracy_value, na.rm = T),
@@ -128,94 +129,27 @@ mean_by_landmark_rep_long <-
                         correct_sd,
                         correct_n),
                       ~ case_when(
-                              is.na(adjacent_far_pa) ~ as.numeric(NA),
+                              is.na(near_pa) ~ as.numeric(NA),
                               TRUE ~ .
                       )))
 
+# Combine these
+mean_by_rep_all_types_long <- bind_rows(mean_by_rep_long,mean_by_landmark_rep_long)
 
-# Pivot into wide form, so we can later merge with the other data reflecting overall performance
-mean_by_landmark_rep_long_wide <- mean_by_landmark_rep_long %>%
-        filter(!condition %in% c('random_locations',
-                                 'no_schema')) %>%
-        droplevels() %>%
-        pivot_wider(id_cols = c(ptp_trunk,
-                                condition,
-                                new_pa_img_row_number_across_sessions,
-                                accuracy_type),
-                    values_from = c(correct_mean,
-                                    correct_sd,
-                                    correct_n),
-                    names_from = adjacent_far_pa,
-                    names_prefix = 'far_pa_'
-        )
-
-# Now merge into one giant dataset
-mean_by_rep_all_types <- merge(mean_by_rep_long,
-                               mean_by_landmark_rep_long_wide,
-                               by = c('ptp_trunk',
-                                      'condition',
-                                      'new_pa_img_row_number_across_sessions',
-                                      'accuracy_type'),
-                               all = TRUE)
-
-## Go from wide to long for both/near/far-PA -----------------------------------
-
-# Pivot longer, but we have to do three columns, so break this up into two parts, then merge.
-# Its possible to do this in one line, using names_pattern, but that needs complicated regular expressions
-mean_by_rep_all_types_long_1 <-
-        mean_by_rep_all_types %>%
-        select(-contains(c('sd','correct_n'))) %>% 
-        rename(both = correct_mean,
-               near_pa = correct_mean_far_pa_FALSE,
-               far_pa = correct_mean_far_pa_TRUE) %>%
-        pivot_longer(cols = c('both','near_pa','far_pa'),
-                     names_to = 'far_pa_status',
-                     values_to = 'correct_mean',
-        )
-mean_by_rep_all_types_long_2 <-
-        mean_by_rep_all_types %>%
-        select(-contains(c('mean','correct_n'))) %>%
-        rename(both = correct_sd,
-               near_pa = correct_sd_far_pa_FALSE,
-               far_pa = correct_sd_far_pa_TRUE) %>%        
-        pivot_longer(cols = c('both','near_pa','far_pa'),
-                     names_to = 'far_pa_status',
-                     values_to = 'correct_sd',
-        )
-
-mean_by_rep_all_types_long_3 <-
-        mean_by_rep_all_types %>%
-        select(-contains(c('mean','sd'))) %>%
-        rename(both = correct_n,
-               near_pa = correct_n_far_pa_FALSE,
-               far_pa = correct_n_far_pa_TRUE) %>%        
-        pivot_longer(cols = c('both','near_pa','far_pa'),
-                     names_to = 'far_pa_status',
-                     values_to = 'n',
-        )
-
-mean_by_rep_all_types_long <-
-        merge(mean_by_rep_all_types_long_1,
-              
-              merge(mean_by_rep_all_types_long_2,
-                    mean_by_rep_all_types_long_3,
-                    by = c('ptp_trunk',
-                           'condition',
-                           'new_pa_img_row_number_across_sessions',
-                           'accuracy_type',
-                           'far_pa_status')),
-              
-              by = c('ptp_trunk',
-                     'condition',
-                     'new_pa_img_row_number_across_sessions',
-                     'accuracy_type',
-                     'far_pa_status'))
-
+# Rename the near pa column to new_pa_status
+mean_by_rep_all_types_long <- mean_by_rep_all_types_long %>%
+        mutate(new_pa_status = case_when(
+                is.na(near_pa) ~ 'both',
+                near_pa == TRUE ~ 'near_pa',
+                near_pa != TRUE ~ 'far_pa',
+                TRUE ~ as.character(NA)
+        )) %>%
+        select(-near_pa)
 
 # Add 95% CI for each calculation
 mean_by_rep_all_types_long <- 
         mean_by_rep_all_types_long %>%
-        mutate(ci_95 = 1.96*correct_sd/sqrt(n))
+        mutate(ci_95 = 1.96*correct_sd/sqrt(correct_n))
 
 
 ## Calculate for each distance from border -----------------------------------
@@ -238,10 +172,10 @@ mean_by_border_dist_rep_long <-
 learning_and_intercept_each_participant <-
         mean_by_rep_all_types_long %>%
         filter(!(condition %in% c('no_schema','random_locations') & 
-                         far_pa_status %in% c('island','far_pa'))) %>%  # filter these, cause for those conditions there are no landmarks
+                         near_pa_status %in% c('near_pa','far_pa'))) %>%  # filter these, cause for those conditions there are no landmarks
         group_by(ptp_trunk,
                  condition,
-                 far_pa_status,
+                 near_pa_status,
                  accuracy_type) %>% 
         do(as.data.frame(
                 optim(c(i_start,c_start),
@@ -282,7 +216,7 @@ learning_and_intercept_each_participants_y_hat <-
         learning_and_intercept_each_participant %>%
         group_by(ptp_trunk,
                  condition,
-                 far_pa_status,
+                 near_pa_status,
                  accuracy_type) %>% 
         mutate(y_hat_i_c = list(fit_learning_and_intercept(c(i,c),
                                                            seq(1:8),

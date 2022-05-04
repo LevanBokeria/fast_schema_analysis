@@ -164,11 +164,11 @@ for (iName in filenames){
                 ungroup()
         
         
-        # Mark which of the new PA items are the far_pas in all conditions
+        # Mark which of the new PA items are the far_pas vs near_pas in all conditions
         all_conditions <- c('schema_c','schema_ic','landmark_schema')
         
         # - create the column with just NAs at first
-        session_results$adjacent_far_pa <- NA        
+        session_results$near_pa <- NA        
                 
         for (iCond in all_conditions){
                 
@@ -189,19 +189,19 @@ for (iName in filenames){
                 distances <- as.matrix(pdist(as.matrix(new_pa_coords),as.matrix(schema_pa_coords)))
                 
                 # - Find the coordinates of the far_pa
-                far_pa_new_pas <- which(distances <= sqrt(2)+0.1,arr.ind=TRUE)
-                far_pa_new_pas <- far_pa_new_pas[,'row'] 
+                near_pa_new_pas <- which(distances <= sqrt(2)+0.1,arr.ind=TRUE)
+                near_pa_new_pas <- near_pa_new_pas[,'row'] 
                 
-                far_pa_new_pa_names <- all_new_pas[far_pa_new_pas]
+                near_pa_new_pa_names <- all_new_pas[near_pa_new_pas]
                 
                 # Now, for this condition, wherever the newPA is a far_pa, mark TRUE. Else mark FALSE
-                session_results$adjacent_far_pa[
+                session_results$near_pa[
                         session_results$condition == iCond & 
-                                session_results$new_pa_img %in% far_pa_new_pa_names] <- 
+                                session_results$new_pa_img %in% near_pa_new_pa_names] <- 
                         TRUE
-                session_results$adjacent_far_pa[
+                session_results$near_pa[
                         session_results$condition == iCond & 
-                                !session_results$new_pa_img %in% far_pa_new_pa_names] <- 
+                                !session_results$new_pa_img %in% near_pa_new_pa_names] <- 
                         FALSE                
                 
         }
