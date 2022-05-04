@@ -20,7 +20,7 @@ if (!exists('i_lower')){
         c_start <- 0.1
         
         # Create lower and upper bound constraints on the asymptote and learning rate
-        c_lower <- Inf
+        c_lower <- 0
         c_upper <- Inf
         i_lower <- 0
         i_upper <- Inf
@@ -136,6 +136,10 @@ mean_by_landmark_rep_long <-
 # Combine these
 mean_by_rep_all_types_long <- bind_rows(mean_by_rep_long,mean_by_landmark_rep_long)
 
+# Remove extra variables
+rm(mean_by_rep_long)
+rm(mean_by_landmark_rep_long)
+
 # Rename the near pa column to new_pa_status
 mean_by_rep_all_types_long <- mean_by_rep_all_types_long %>%
         mutate(new_pa_status = case_when(
@@ -169,13 +173,32 @@ mean_by_border_dist_rep_long <-
         ungroup()
 
 # Fit the learning curves #############################################
+# a <- mean_by_rep_all_types_long %>%
+#         filter(ptp_trunk == '5c9a698...',
+#                condition == 'schema_ic',
+#                accuracy_type == 'correct_exact',
+#                new_pa_status == 'both') %>%
+#         select(correct_mean,accuracy_type,new_pa_status)
+# 
+# optim(c(i_start,c_start),
+#       fit_learning_and_intercept,
+#       gr = NULL,
+#       seq(1,8),
+#       a$correct_mean,
+#       'sse',
+#       a$accuracy_type,
+#       TRUE,
+#       method = 'L-BFGS-B',
+#       lower = c(i_lower,c_lower),
+#       upper = c(i_upper,c_upper)
+# )
+
+
 learning_and_intercept_each_participant <-
         mean_by_rep_all_types_long %>%
-        filter(!(condition %in% c('no_schema','random_locations') & 
-                         near_pa_status %in% c('near_pa','far_pa'))) %>%  # filter these, cause for those conditions there are no landmarks
         group_by(ptp_trunk,
                  condition,
-                 near_pa_status,
+                 new_pa_status,
                  accuracy_type) %>% 
         do(as.data.frame(
                 optim(c(i_start,c_start),
@@ -184,6 +207,8 @@ learning_and_intercept_each_participant <-
                       seq(1,8),
                       .$correct_mean,
                       'sse',
+                      .$accuracy_type,
+                      FALSE,
                       method = 'L-BFGS-B',
                       lower = c(i_lower,c_lower),
                       upper = c(i_upper,c_upper)
@@ -203,6 +228,7 @@ learning_and_intercept_each_participant <-
         learning_and_intercept_each_participant %>%
         mutate(c_log = log(c))
 # This will result in Inf for those c==0. Do empirical log-odds?
+print('CHANGE HOW SMALLEST LOG C GETS SUBSTITUTED')
 smallest_c_log <- learning_and_intercept_each_participant$c_log[!is.infinite(learning_and_intercept_each_participant$c_log)] %>% min()
 learning_and_intercept_each_participant <-
         learning_and_intercept_each_participant %>%
@@ -216,18 +242,21 @@ learning_and_intercept_each_participants_y_hat <-
         learning_and_intercept_each_participant %>%
         group_by(ptp_trunk,
                  condition,
-                 near_pa_status,
+                 new_pa_status,
                  accuracy_type) %>% 
+        rowwise() %>%
         mutate(y_hat_i_c = list(fit_learning_and_intercept(c(i,c),
                                                            seq(1:8),
                                                            seq(1:8),
-                                                           'fit')),
-               new_pa_img_row_number_across_sessions = list(seq(1:8))) %>%
+                                                           'fit',
+                                                           accuracy_type,
+                                                           FALSE)),
+               new_pa_img_row_number_across_sessions = list(seq(1:8))) %>% 
         unnest(c(y_hat_i_c,
                  new_pa_img_row_number_across_sessions)) %>% 
         select(c(ptp_trunk,
                  condition,
-                 neighbor_status,
+                 new_pa_status,
                  accuracy_type,
                  y_hat_i_c,
                  new_pa_img_row_number_across_sessions)) %>%
@@ -237,7 +266,7 @@ mean_by_rep_all_types_long <- merge(mean_by_rep_all_types_long,
                                     learning_and_intercept_each_participants_y_hat,
                                     by = c('ptp_trunk',
                                            'condition',
-                                           'neighbor_status',
+                                           'new_pa_status',
                                            'accuracy_type',
                                            'new_pa_img_row_number_across_sessions'),
                                     all = TRUE)
@@ -251,7 +280,7 @@ last_two_reps_stats <-
         filter(new_pa_img_row_number_across_sessions %in% c(7,8)) %>%
         group_by(ptp_trunk,
                  condition,
-                 neighbor_status,
+                 new_pa_status,
                  accuracy_type) %>%
         summarise(last_two_mean = mean(correct_mean),
                   last_two_sd   = sd(correct_sd)) %>%
@@ -262,7 +291,7 @@ last_four_reps_stats <-
         filter(new_pa_img_row_number_across_sessions %in% c(5,6,7,8)) %>%
         group_by(ptp_trunk,
                  condition,
-                 neighbor_status,
+                 new_pa_status,
                  accuracy_type) %>%
         summarise(last_four_mean = mean(correct_mean),
                   last_four_sd   = sd(correct_sd)) %>%
@@ -273,7 +302,7 @@ sum_stats_each_participant <- merge(last_two_reps_stats,
                                     last_four_reps_stats,
                                     by = c('ptp_trunk',
                                            'condition',
-                                           'neighbor_status',
+                                           'new_pa_status',
                                            'accuracy_type'))
 
 # Log transform the last 2 and last 4 measures
@@ -294,18 +323,9 @@ sum_stats_each_participant <- merge(sum_stats_each_participant,
                                     learning_and_intercept_each_participant,
                                     by = c('ptp_trunk',
                                            'condition',
-                                           'neighbor_status',
+                                           'new_pa_status',
                                            'accuracy_type'),
                                     all = TRUE)
-
-# Remove extra variables #####################################################
-rm(mean_by_rep_all_types_long_1)
-rm(mean_by_rep_all_types_long_2)
-rm(mean_by_rep_all_types_long_3)
-rm(mean_by_landmark_rep_long)
-rm(mean_by_landmark_rep_long_wide)
-rm(mean_by_rep_long)
-
 
 
 

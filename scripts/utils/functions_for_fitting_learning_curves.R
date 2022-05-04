@@ -1,16 +1,34 @@
-fit_learning_and_intercept <- function(p,t,y,ret){
+fit_learning_and_intercept <- function(p,t,y,ret,measure,print_output){
 
         # Define the function:
-        #y_hat <- p[1]*(1-exp(-p[2]*(t-1)))
-        y_hat <- p[1] + (1 - exp(-p[2]*(t-1)))*(1-p[1])
+
+        
+        if (measure[1] == 'mouse_dist_euclid'){
+                y_hat <- p[1] * (exp(-p[2]*(t-1)))
+                
+        } else {
+                y_hat <- p[1] + (1 - exp(-p[2]*(t-1)))*(1-p[1])      
+                
+        }
+        
         
         sse <- sum((y-y_hat)^2)
-        
-#        return(list("sse"=sse,"fit"=y_hat)) # doesn't work with "optim"
-        if (ret=='fit') {return(y_hat)} 
-        else {return(sse)}
-}
 
+        if (print_output){
+                print(paste0('params: ',p))
+                print(paste0('measure: ',measure[1]))
+                print(paste0(y,collapse = ' '))
+                print(paste0(y_hat,collapse = ' '))
+                # print(paste0('sse: ',sse))
+        }
+
+                
+        if (ret=='fit') {
+                return(y_hat)
+        } else {
+                return(sse)
+        } 
+}
 
 fit_learning_only <- function(p,t,y){
         # p: parameter to estimate. Just the learning rate. 

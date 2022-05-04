@@ -27,7 +27,7 @@ source('./scripts/utils/analyze_dependent_variables.R')
 
 # Calculate skewness ##########################################
 skew_each_cond <- sum_stats_each_participant %>%
-        filter(neighbor_status == 'both',
+        filter(new_pa_status == 'both',
                accuracy_type %in% c('correct_exact','correct_one_square_away')) %>%
         droplevels() %>%
         group_by(condition,
@@ -35,7 +35,7 @@ skew_each_cond <- sum_stats_each_participant %>%
         summarise(skew = skewness(last_four_mean, na.rm = T))
 
 skew_across_cond <- sum_stats_each_participant %>%
-        filter(neighbor_status == 'both',
+        filter(new_pa_status == 'both',
                accuracy_type %in% c('correct_exact','correct_one_square_away')) %>%
         droplevels() %>%
         group_by(accuracy_type) %>%
@@ -44,7 +44,7 @@ skew_across_cond <- sum_stats_each_participant %>%
 # Plot last 4 PAs averaged ##########################
 
 sum_stats_each_participant %>%
-        filter(neighbor_status == 'both',
+        filter(new_pa_status == 'both',
                accuracy_type %in% c('correct_exact','correct_one_square_away')) %>%
         droplevels() %>%
         ggplot(aes(x=last_four_mean)) +
@@ -57,7 +57,7 @@ sum_stats_each_participant %>%
                       label = round(skew,2)))
 
 sum_stats_each_participant %>%
-        filter(neighbor_status == 'both',
+        filter(new_pa_status == 'both',
                accuracy_type %in% c('correct_exact','correct_one_square_away')) %>%
         droplevels() %>%
         ggplot(aes(x=last_four_mean)) +
@@ -77,7 +77,7 @@ ml_fits <- import('./results/pilots/preprocessed_data/learning_rate_fits_matlab.
 ## Plots ---------------------------------------------------------------------
 
 lr_skew_each_cond <- ml_fits %>%
-        filter(neighbor_status == 'both',
+        filter(new_pa_status == 'both',
                accuracy_type %in% c('correct_exact','correct_one_square_away')) %>%
         droplevels() %>%
         group_by(condition,
@@ -85,7 +85,7 @@ lr_skew_each_cond <- ml_fits %>%
         summarise(skew = skewness(learning_rate, na.rm = T))
 
 lr_skew_across_cond <- ml_fits %>%
-        filter(neighbor_status == 'both',
+        filter(new_pa_status == 'both',
                accuracy_type %in% c('correct_exact','correct_one_square_away')) %>%
         droplevels() %>%
         group_by(accuracy_type) %>%
@@ -93,7 +93,7 @@ lr_skew_across_cond <- ml_fits %>%
 
 
 ml_fits %>%
-        filter(neighbor_status == 'both',
+        filter(new_pa_status == 'both',
                accuracy_type %in% c('correct_exact','correct_one_square_away')) %>%
         droplevels() %>%
         ggplot(aes(x=learning_rate)) +
@@ -107,7 +107,7 @@ ml_fits %>%
 
 
 ml_fits %>%
-        filter(neighbor_status == 'both',
+        filter(new_pa_status == 'both',
                accuracy_type %in% c('correct_exact','correct_one_square_away')) %>%
         droplevels() %>%
         ggplot(aes(x=learning_rate)) +

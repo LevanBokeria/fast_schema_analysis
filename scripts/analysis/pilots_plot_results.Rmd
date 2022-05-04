@@ -26,9 +26,9 @@ c_start <- 0.1
 
 # Create lower and upper bound constraints on the asymptote and learning rate
 c_lower <- 0
-c_upper <- 20
+c_upper <- Inf
 i_lower <- 0
-i_upper <- 1
+i_upper <- Inf
 
 qc_filter <- F
 
@@ -38,7 +38,7 @@ qc_filter <- F
 
 ```{r analyze-dependent-variables}
 
-source('./scripts/utils/analyze_dependent_variables.R')
+source('./scripts/analysis/analyze_dependent_variables.R')
 
 
 ```
@@ -85,7 +85,7 @@ fig_long_accu <- mean_by_rep_all_types_long %>%
                                     'correct_one_square_away',
                                     'correct_rad_42',
                                     'correct_rad_63'),
-               neighbor_status == 'both') %>%
+               new_pa_status == 'both') %>%
         droplevels() %>%
         ggplot(aes(x=new_pa_img_row_number_across_sessions,
                    y=correct_mean,
@@ -137,7 +137,7 @@ Looking at those participants where the convergence failed, its unclear why it h
 # Plot the fits
 fig_each_ptp <- mean_by_rep_all_types_long %>%
         filter(accuracy_type %in% c('correct_exact'),
-               neighbor_status == 'both') %>%
+               new_pa_status == 'both') %>%
         droplevels() %>%        
         ggplot(aes(x=new_pa_img_row_number_across_sessions,
                    y=correct_mean)) +
@@ -161,7 +161,7 @@ fig_each_ptp <- mean_by_rep_all_types_long %>%
         geom_text(data=filter(
                 learning_and_intercept_each_participant,
                 accuracy_type %in% c('correct_exact'),
-                neighbor_status == 'both'
+                new_pa_status == 'both'
                 ),
                 aes(x=4,
                     y=0.65,
@@ -186,7 +186,7 @@ print(fig_each_ptp)
 # Plot the fits
 fig_each_ptp <- mean_by_rep_all_types_long %>%
         filter(accuracy_type %in% c('correct_one_square_away'),
-               neighbor_status == 'both') %>%
+               new_pa_status == 'both') %>%
         droplevels() %>%        
         ggplot(aes(x=new_pa_img_row_number_across_sessions,
                    y=correct_mean)) +
@@ -210,7 +210,7 @@ fig_each_ptp <- mean_by_rep_all_types_long %>%
         geom_text(data=filter(
                 learning_and_intercept_each_participant,
                 accuracy_type %in% c('correct_one_square_away'),
-                neighbor_status == 'both'
+                new_pa_status == 'both'
                 ),
                 aes(x=5.5,
                     y=0.15,
@@ -235,7 +235,7 @@ print(fig_each_ptp)
 # Plot the fits
 fig_each_ptp <- mean_by_rep_all_types_long %>%
         filter(accuracy_type %in% c('mouse_dist_euclid'),
-               neighbor_status == 'both') %>%
+               new_pa_status == 'both') %>%
         droplevels() %>%        
         ggplot(aes(x=new_pa_img_row_number_across_sessions,
                    y=correct_mean)) +
@@ -259,7 +259,7 @@ fig_each_ptp <- mean_by_rep_all_types_long %>%
         geom_text(data=filter(
                 learning_and_intercept_each_participant,
                 accuracy_type %in% c('mouse_dist_euclid'),
-                neighbor_status == 'both'
+                new_pa_status == 'both'
                 ),
                 aes(x=5.5,
                     y=0.15,
@@ -296,13 +296,13 @@ We can see convergence in all but 1 case: 5d776e2... landmark_schema, one_square
 # Plot the fits
 fig_each_ptp_lm <- mean_by_rep_all_types_long %>%
         filter(accuracy_type %in% c('correct_exact'),
-               neighbor_status %in% c('near_pa','neighbor'),
+               new_pa_status %in% c('near_pa','neighbor'),
                !condition %in% c('random_locations','no_schema')) %>%
         droplevels() %>%        
         ggplot(aes(x=new_pa_img_row_number_across_sessions,
                    y=correct_mean,
-                   group=neighbor_status,
-                   color=neighbor_status)) +
+                   group=new_pa_status,
+                   color=new_pa_status)) +
         geom_point() +
         geom_line(size=1) +
 # 
@@ -323,7 +323,7 @@ fig_each_ptp_lm <- mean_by_rep_all_types_long %>%
         geom_text(data=filter(
                 learning_and_intercept_each_participant,
                 accuracy_type %in% c('correct_exact'),
-                neighbor_status %in% c('near_pa','neighbor'),
+                new_pa_status %in% c('near_pa','neighbor'),
                 !condition %in% c('random_locations','no_schema')
                 ),
                 aes(x=3.5,
@@ -348,13 +348,13 @@ print(fig_each_ptp_lm)
 # Plot the fits
 fig_each_ptp_lm <- mean_by_rep_all_types_long %>%
         filter(accuracy_type %in% c('correct_one_square_away'),
-               neighbor_status %in% c('near_pa','neighbor'),
+               new_pa_status %in% c('near_pa','neighbor'),
                !condition %in% c('random_locations','no_schema')) %>%
         droplevels() %>%        
         ggplot(aes(x=new_pa_img_row_number_across_sessions,
                    y=correct_mean,
-                   group=neighbor_status,
-                   color=neighbor_status)) +
+                   group=new_pa_status,
+                   color=new_pa_status)) +
         geom_point() +
         geom_line(size=1) +
 # 
@@ -375,7 +375,7 @@ fig_each_ptp_lm <- mean_by_rep_all_types_long %>%
         geom_text(data=filter(
                 learning_and_intercept_each_participant,
                 accuracy_type %in% c('correct_one_square_away'),
-                neighbor_status %in% c('near_pa','neighbor'),
+                new_pa_status %in% c('near_pa','neighbor'),
                 !condition %in% c('random_locations','no_schema')
                 ),
                 aes(x=3.5,
@@ -401,13 +401,13 @@ print(fig_each_ptp_lm)
 
 fig_each_ptp_lm <- mean_by_rep_all_types_long %>%
         filter(accuracy_type %in% c('mouse_dist_euclid'),
-               neighbor_status %in% c('near_pa','neighbor'),
+               new_pa_status %in% c('near_pa','neighbor'),
                !condition %in% c('random_locations','no_schema')) %>%
         droplevels() %>%        
         ggplot(aes(x=new_pa_img_row_number_across_sessions,
                    y=correct_mean,
-                   group=neighbor_status,
-                   color=neighbor_status)) +
+                   group=new_pa_status,
+                   color=new_pa_status)) +
         geom_point() +
         geom_line(size=1) +
 # 
@@ -428,7 +428,7 @@ fig_each_ptp_lm <- mean_by_rep_all_types_long %>%
         # geom_text(data=filter(
         #         learning_and_intercept_each_participant,
         #         accuracy_type %in% c('correct_one_square_away'),
-        #         neighbor_status %in% c('near_pa','neighbor'),
+        #         new_pa_status %in% c('near_pa','neighbor'),
         #         !condition %in% c('random_locations','no_schema')
         #         ),
         #         aes(x=3.5,
@@ -465,7 +465,7 @@ print(fig_each_ptp_lm)
 ```{r plot-rough-measures-overall, fig.width=13, fig.height=4}
 
 sum_stats_each_participant %>%
-        filter(neighbor_status == 'both') %>%
+        filter(new_pa_status == 'both') %>%
         droplevels() %>%
         ggplot(aes(x=condition,
                    y=last_two_mean)) +
@@ -488,7 +488,7 @@ sum_stats_each_participant %>%
         ggtitle('Overall, last 2 reps') 
 
 sum_stats_each_participant %>%
-        filter(neighbor_status == 'both') %>%
+        filter(new_pa_status == 'both') %>%
         droplevels() %>%
         ggplot(aes(x=condition,
                    y=last_four_mean)) +
@@ -511,7 +511,7 @@ sum_stats_each_participant %>%
         ggtitle('Overall, last 4 reps') 
 
 sum_stats_each_participant %>%
-        filter(neighbor_status == 'both') %>%
+        filter(new_pa_status == 'both') %>%
         droplevels() %>%
         ggplot(aes(x=condition,
                    y=log_last_two_mean)) +
@@ -534,7 +534,7 @@ sum_stats_each_participant %>%
         ggtitle('Overall, LOG last 2 reps') 
 
 sum_stats_each_participant %>%
-        filter(neighbor_status == 'both') %>%
+        filter(new_pa_status == 'both') %>%
         droplevels() %>%
         ggplot(aes(x=condition,
                    y=log_last_four_mean)) +
@@ -564,7 +564,7 @@ Also plot different accuracy types, within each condition. Illustrates nicely ho
 ```{r plot-rough-measures-last-two-differently-grouped, fig.width=13, fig.height=4}
 
 sum_stats_each_participant %>%
-        filter(neighbor_status == 'both') %>%
+        filter(new_pa_status == 'both') %>%
         droplevels() %>%
         ggplot(aes(x=accuracy_type,
                    y=last_two_mean)) +
@@ -587,7 +587,7 @@ sum_stats_each_participant %>%
         ggtitle('Overall, last 2 reps') 
 
 sum_stats_each_participant %>%
-        filter(neighbor_status == 'both') %>%
+        filter(new_pa_status == 'both') %>%
         droplevels() %>%
         ggplot(aes(x=accuracy_type,
                    y=last_four_mean)) +
@@ -610,7 +610,7 @@ sum_stats_each_participant %>%
         ggtitle('Overall, last 4 reps') 
 
 sum_stats_each_participant %>%
-        filter(neighbor_status == 'both') %>%
+        filter(new_pa_status == 'both') %>%
         droplevels() %>%
         ggplot(aes(x=accuracy_type,
                    y=log_last_two_mean)) +
@@ -633,7 +633,7 @@ sum_stats_each_participant %>%
         ggtitle('Overall, LOG last 2 reps') 
 
 sum_stats_each_participant %>%
-        filter(neighbor_status == 'both') %>%
+        filter(new_pa_status == 'both') %>%
         droplevels() %>%
         ggplot(aes(x=accuracy_type,
                    y=log_last_four_mean)) +
@@ -665,13 +665,13 @@ sum_stats_each_participant %>%
 
 # Last 2
 sum_stats_each_participant %>%
-        filter(neighbor_status != 'both',
+        filter(new_pa_status != 'both',
                !condition %in% c('random_locations','no_schema')) %>%
         droplevels() %>%
         pivot_wider(id_cols = c(ptp_trunk,
                                 condition,
                                 accuracy_type),
-                    names_from = neighbor_status,
+                    names_from = new_pa_status,
                     values_from = last_two_mean) %>% 
         mutate(neighbor_diff = neighbor - near_pa) %>%
         ggplot(aes(x=condition,y=neighbor_diff)) +
@@ -694,13 +694,13 @@ sum_stats_each_participant %>%
 
 # Last 4
 sum_stats_each_participant %>%
-        filter(neighbor_status != 'both',
+        filter(new_pa_status != 'both',
                !condition %in% c('random_locations','no_schema')) %>%
         droplevels() %>%
         pivot_wider(id_cols = c(ptp_trunk,
                                 condition,
                                 accuracy_type),
-                    names_from = neighbor_status,
+                    names_from = new_pa_status,
                     values_from = last_four_mean) %>% 
         mutate(neighbor_diff = neighbor - near_pa) %>%
         ggplot(aes(x=condition,y=neighbor_diff)) +
@@ -723,13 +723,13 @@ sum_stats_each_participant %>%
 
 # Last 2
 sum_stats_each_participant %>%
-        filter(neighbor_status != 'both',
+        filter(new_pa_status != 'both',
                !condition %in% c('random_locations','no_schema')) %>%
         droplevels() %>%
         pivot_wider(id_cols = c(ptp_trunk,
                                 condition,
                                 accuracy_type),
-                    names_from = neighbor_status,
+                    names_from = new_pa_status,
                     values_from = log_last_two_mean) %>% 
         mutate(neighbor_diff = neighbor - near_pa) %>%
         ggplot(aes(x=condition,y=neighbor_diff)) +
@@ -752,13 +752,13 @@ sum_stats_each_participant %>%
 
 # Last 4
 sum_stats_each_participant %>%
-        filter(neighbor_status != 'both',
+        filter(new_pa_status != 'both',
                !condition %in% c('random_locations','no_schema')) %>%
         droplevels() %>%
         pivot_wider(id_cols = c(ptp_trunk,
                                 condition,
                                 accuracy_type),
-                    names_from = neighbor_status,
+                    names_from = new_pa_status,
                     values_from = log_last_four_mean) %>% 
         mutate(neighbor_diff = neighbor - near_pa) %>%
         ggplot(aes(x=condition,y=neighbor_diff)) +
@@ -793,7 +793,7 @@ sum_stats_each_participant %>%
         pivot_longer(cols = c(last_two_mean,last_four_mean),
                      names_to = 'how_many_last',
                      values_to = 'average_acc') %>%
-        filter(neighbor_status == 'both',
+        filter(new_pa_status == 'both',
                accuracy_type %in% c('correct_exact','correct_one_square_away')) %>%
         droplevels() %>%
         ggplot(aes(x=average_acc, group=how_many_last, color=how_many_last)) +

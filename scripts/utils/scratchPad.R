@@ -62,7 +62,7 @@ idf <- mean_by_rep_all_types_long %>%
         filter(condition == cond,
                ptp_trunk == ptp,
                accuracy_type == 'correct_one_square_away',
-               neighbor_status == 'both')
+               new_pa_status == 'both')
 
 # Now fit this individually
 
