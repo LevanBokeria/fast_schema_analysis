@@ -117,7 +117,7 @@ mean_by_landmark_rep_long <-
         droplevels() %>%
         group_by(ptp_trunk,
                  condition,
-                 adjascent_neighbor,
+                 adjacent_neighbor,
                  new_pa_img_row_number_across_sessions,
                  accuracy_type) %>%
         summarise(correct_mean = mean(accuracy_value, na.rm = T),
@@ -128,7 +128,7 @@ mean_by_landmark_rep_long <-
                         correct_sd,
                         correct_n),
                       ~ case_when(
-                              is.na(adjascent_neighbor) ~ as.numeric(NA),
+                              is.na(adjacent_neighbor) ~ as.numeric(NA),
                               TRUE ~ .
                       )))
 
@@ -145,7 +145,7 @@ mean_by_landmark_rep_long_wide <- mean_by_landmark_rep_long %>%
                     values_from = c(correct_mean,
                                     correct_sd,
                                     correct_n),
-                    names_from = adjascent_neighbor,
+                    names_from = adjacent_neighbor,
                     names_prefix = 'neighbor_'
         )
 

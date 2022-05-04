@@ -73,10 +73,10 @@ if (load_existing_data){
                 droplevels() %>%
                 select(ptp_trunk,condition,
                        row,col,corr_row,corr_col,
-                       correct_exact,correct_one_square_away,border_dist,adjascent_neighbor)
+                       correct_exact,correct_one_square_away,border_dist,adjacent_neighbor)
         
         df_all_ptp <- df_all_ptp %>%
-                filter(adjascent_neighbor == FALSE)
+                filter(adjacent_neighbor == FALSE)
         
         ctr <- 1
         

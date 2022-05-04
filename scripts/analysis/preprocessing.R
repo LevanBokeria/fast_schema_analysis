@@ -168,7 +168,7 @@ for (iName in filenames){
         all_conditions <- c('schema_c','schema_ic','landmark_schema')
         
         # - create the column with just NAs at first
-        session_results$adjascent_neighbor <- NA        
+        session_results$adjacent_neighbor <- NA        
                 
         for (iCond in all_conditions){
                 
@@ -195,11 +195,11 @@ for (iName in filenames){
                 neighbor_new_pa_names <- all_new_pas[neighbor_new_pas]
                 
                 # Now, for this condition, wherever the newPA is a neighbor, mark TRUE. Else mark FALSE
-                session_results$adjascent_neighbor[
+                session_results$adjacent_neighbor[
                         session_results$condition == iCond & 
                                 session_results$new_pa_img %in% neighbor_new_pa_names] <- 
                         TRUE
-                session_results$adjascent_neighbor[
+                session_results$adjacent_neighbor[
                         session_results$condition == iCond & 
                                 !session_results$new_pa_img %in% neighbor_new_pa_names] <- 
                         FALSE                
