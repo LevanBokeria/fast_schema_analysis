@@ -25,7 +25,7 @@ i_start <- 0.5
 c_start <- 0.1
 
 # Create lower and upper bound constraints on the asymptote and learning rate
-c_lower <- -Inf
+c_lower <- 0
 c_upper <- Inf
 i_lower <- 0
 i_upper <- Inf
@@ -38,7 +38,7 @@ qc_filter <- F
 
 ```{r analyze-dependent-variables}
 
-source('./scripts/utils/analyze_dependent_variables.R')
+source('./scripts/analysis/analyze_dependent_variables.R')
 
 
 ```
@@ -61,59 +61,7 @@ for (iPtp in as.vector(all_ptp)){
 
 ```
 
-# Combine matlab learning rate estimates 
-
-```{r combine-matlab}
-
-ml_learning_rate <- import('./results/pilots/preprocessed_data/learning_rate_fits_matlab.csv')
-
-sum_stats_each_participant <- merge(sum_stats_each_participant,
-                                    ml_learning_rate,
-                                    by = c('ptp_trunk',
-                                           'condition',
-                                           'far_pa_status',
-                                           'accuracy_type'),
-                                    all.x = T)
-
-sum_stats_each_participant <- sum_stats_each_participant %>%
-        rename(sse = sse.x,
-               sse_ml = sse.y,
-               i_ml = intercept,
-               c_ml = learning_rate)
-
-# Calculate predicted y values and merge with the long form data
-learning_and_intercept_each_participants_y_hat_ml <-
-        ml_learning_rate %>%
-        group_by(ptp_trunk,
-                 condition,
-                 far_pa_status,
-                 accuracy_type) %>% 
-        mutate(y_hat_i_c_ml = list(fit_learning_and_intercept(c(intercept,learning_rate),
-                                                           seq(1:8),
-                                                           seq(1:8),
-                                                           'fit')),
-               new_pa_img_row_number_across_sessions = list(seq(1:8))) %>%
-        unnest(c(y_hat_i_c_ml,
-                 new_pa_img_row_number_across_sessions)) %>% 
-        select(c(ptp_trunk,
-                 condition,
-                 far_pa_status,
-                 accuracy_type,
-                 y_hat_i_c_ml,
-                 new_pa_img_row_number_across_sessions)) %>%
-        ungroup()
-
-mean_by_rep_all_types_long <- merge(mean_by_rep_all_types_long,
-                                    learning_and_intercept_each_participants_y_hat_ml,
-                                    by = c('ptp_trunk',
-                                           'condition',
-                                           'far_pa_status',
-                                           'accuracy_type',
-                                           'new_pa_img_row_number_across_sessions'),
-                                    all = TRUE)
-
-
-```
+# Compare to matlab learning rate estimates 
 
 ## Do ML and R estimates correlate?
 
@@ -124,19 +72,20 @@ sum_stats_each_participant <- sum_stats_each_participant %>%
 
 sum_stats_each_participant %>%
         filter(accuracy_type %in% c('correct_exact',
-                                    'correct_one_square_away')) %>%
+                                    'correct_one_square_away',
+                                    'mouse_dist_euclid')) %>%
         ggplot(aes(x=i,
                    y=i_ml,
-                   color = far_pa_status)) +
+                   color = new_pa_status)) +
         geom_point() +
-        facet_wrap(~accuracy_type)
+        facet_wrap(~accuracy_type, scales = 'free')
 
 sum_stats_each_participant %>%
         filter(accuracy_type == 'correct_exact') %>%
         droplevels() %>%
         ggplot(aes(x=c,
                    y=c_ml,
-                   color = far_pa_status)) +
+                   color = new_pa_status)) +
         geom_point() +
         facet_wrap(~accuracy_type)
 
@@ -145,17 +94,28 @@ sum_stats_each_participant %>%
         droplevels() %>%
         ggplot(aes(x=c,
                    y=c_ml,
-                   color = far_pa_status)) +
+                   color = new_pa_status)) +
+        geom_point() +
+        facet_wrap(~accuracy_type)
+
+sum_stats_each_participant %>%
+        filter(accuracy_type == 'mouse_dist_euclid') %>%
+        droplevels() %>%
+        ggplot(aes(x=c,
+                   y=c_ml,
+                   color = new_pa_status)) +
         geom_point() +
         facet_wrap(~accuracy_type)
 
 # Diff in i
 sum_stats_each_participant %>%
+        filter(accuracy_type == 'mouse_dist_euclid') %>%
         ggplot(aes(x = seq(1:nrow(.)),y = i_diff)) +
         geom_point()
 
 # Diff in c
 sum_stats_each_participant %>%
+        filter(accuracy_type == 'mouse_dist_euclid') %>%
         # filter(c_diff > -5) %>%
         ggplot(aes(x = seq(1:nrow(.)),y = c_diff)) +
         geom_point()
@@ -166,22 +126,12 @@ sum_stats_each_participant %>%
 
 ## Raw learning curves + learning fits
 
-So, overlay the curve fits, with annotated info about the intercept value, learning rate value, and convergence status.
-For the convergence status:
-
-- 0 means success
-- 52 means error.
-
-Only plot correct_exact and then correct_one_square_away. Two separate panels of plots for each.
-
-Looking at those participants where the convergence failed, its unclear why it happens. For some of the failure cases, the data doesn't look messy or weird in any way. For example, participant '6047ae5...' random_locations condition, one_square_away measure.
-
 ```{r raw-learning-curves-and-fits, fig.width=13, fig.height=12}
 
 # Plot the fits
 fig_each_ptp <- mean_by_rep_all_types_long %>%
         filter(accuracy_type %in% c('correct_exact'),
-               far_pa_status == 'both') %>%
+               new_pa_status == 'both') %>%
         droplevels() %>%        
         ggplot(aes(x=new_pa_img_row_number_across_sessions,
                    y=correct_mean)) +
@@ -212,7 +162,7 @@ fig_each_ptp <- mean_by_rep_all_types_long %>%
         geom_text(data=filter(
                 sum_stats_each_participant,
                 accuracy_type %in% c('correct_exact'),
-                far_pa_status == 'both'
+                new_pa_status == 'both'
                 ),
                 aes(x=4,
                     y=0.65,
@@ -238,7 +188,7 @@ print(fig_each_ptp)
 # Plot the fits
 fig_each_ptp <- mean_by_rep_all_types_long %>%
         filter(accuracy_type %in% c('correct_one_square_away'),
-               far_pa_status == 'both') %>%
+               new_pa_status == 'both') %>%
         droplevels() %>%        
         ggplot(aes(x=new_pa_img_row_number_across_sessions,
                    y=correct_mean)) +
@@ -269,7 +219,7 @@ fig_each_ptp <- mean_by_rep_all_types_long %>%
         geom_text(data=filter(
                 sum_stats_each_participant,
                 accuracy_type %in% c('correct_one_square_away'),
-                far_pa_status == 'both'
+                new_pa_status == 'both'
                 ),
                 aes(x=5.5,
                     y=0.15,
@@ -291,7 +241,59 @@ fig_each_ptp <- mean_by_rep_all_types_long %>%
 print(fig_each_ptp)
 
 
+# Now, plot with mouse distance
 
+# Plot the fits
+fig_each_ptp <- mean_by_rep_all_types_long %>%
+        filter(accuracy_type %in% c('mouse_dist_euclid'),
+               new_pa_status == 'both') %>%
+        droplevels() %>%        
+        ggplot(aes(x=new_pa_img_row_number_across_sessions,
+                   y=correct_mean)) +
+        geom_point() +
+        geom_line(size=0.5) +
+
+        # Add the y_hat learning and intercept
+        geom_line(aes(x=new_pa_img_row_number_across_sessions,
+                      y=y_hat_i_c),
+                  size=1,
+                  color='red',
+                  linetype = 'longdash') +
+        
+        # Add the y_hat learning and intercept from MATLAB
+        geom_line(aes(x=new_pa_img_row_number_across_sessions,
+                      y=y_hat_i_c_ml),
+                  size=1,
+                  color='green',
+                  linetype = 'twodash') +         
+
+        facet_grid(ptp_trunk~condition) +
+        ggtitle(paste('mouse_dist_euclid: real and estimate data',sep='')) +
+        xlab('Image repetition') +
+        ylab('mouse_dist_euclid') +
+        scale_x_continuous(breaks=c(1,2,3,4,5,6,7,8)) +
+        # theme(legend.position = 'top') +
+        geom_vline(xintercept = 4.5, linetype = 'dashed') +
+        geom_text(data=filter(
+                sum_stats_each_participant,
+                accuracy_type %in% c('mouse_dist_euclid'),
+                new_pa_status == 'both'
+                ),
+                aes(x=5.5,
+                    y=0.15,
+                    label = paste('conv=',
+                                  as.character(convergence),
+                                  ' ',
+                                  'i=',
+                                  as.character(round(i,2)),
+                                  ' ',
+                                  'c=',
+                                  as.character(round(c,2)),
+                                  seq=''))) +
+        theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank())
+
+
+print(fig_each_ptp)
 ```
 
 ## Learning curves: Landmark vs non-landmark
@@ -309,13 +311,13 @@ We can see convergence in all but 1 case: 5d776e2... landmark_schema, one_square
 # Plot the fits
 fig_each_ptp_lm <- mean_by_rep_all_types_long %>%
         filter(accuracy_type %in% c('correct_exact'),
-               far_pa_status %in% c('near_pa','far_pa'),
+               new_pa_status %in% c('near_pa','far_pa'),
                !condition %in% c('random_locations','no_schema')) %>%
         droplevels() %>%        
         ggplot(aes(x=new_pa_img_row_number_across_sessions,
                    y=correct_mean,
-                   group=far_pa_status,
-                   color=far_pa_status)) +
+                   group=new_pa_status,
+                   color=new_pa_status)) +
         geom_point(alpha = 0.1) +
         geom_line(size=0.5,
                   alpha = 0.1) +
@@ -344,7 +346,7 @@ fig_each_ptp_lm <- mean_by_rep_all_types_long %>%
         # geom_text(data=filter(
         #         sum_stats_each_participant,
         #         accuracy_type %in% c('correct_exact'),
-        #         far_pa_status %in% c('near_pa','far_pa'),
+        #         new_pa_status %in% c('near_pa','far_pa'),
         #         !condition %in% c('random_locations','no_schema')
         #         ),
         #         aes(x=3.5,
@@ -371,13 +373,13 @@ print(fig_each_ptp_lm)
 # Plot the fits
 fig_each_ptp_lm <- mean_by_rep_all_types_long %>%
         filter(accuracy_type %in% c('correct_one_square_away'),
-               far_pa_status %in% c('near_pa','far_pa'),
+               new_pa_status %in% c('near_pa','far_pa'),
                !condition %in% c('random_locations','no_schema')) %>%
         droplevels() %>%        
         ggplot(aes(x=new_pa_img_row_number_across_sessions,
                    y=correct_mean,
-                   group=far_pa_status,
-                   color=far_pa_status)) +
+                   group=new_pa_status,
+                   color=new_pa_status)) +
         geom_point(alpha=0.1) +
         geom_line(size=0.5,
                   alpha=0.1) +
@@ -405,7 +407,7 @@ fig_each_ptp_lm <- mean_by_rep_all_types_long %>%
         # geom_text(data=filter(
         #         sum_stats_each_participant,
         #         accuracy_type %in% c('correct_one_square_away'),
-        #         far_pa_status %in% c('near_pa','far_pa'),
+        #         new_pa_status %in% c('near_pa','far_pa'),
         #         !condition %in% c('random_locations','no_schema')
         #         ),
         #         aes(x=3.5,

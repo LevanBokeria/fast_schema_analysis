@@ -1,4 +1,4 @@
-function [out_params,fval] = est_learning_rate(ptp_data,params,plotEstimation)
+function [out_params,fval] = est_learning_rate(ptp_data,params,plotEstimation,accuracy_type)
     
     % fminsearch will find the best gamma
     if plotEstimation
@@ -16,7 +16,12 @@ function [out_params,fval] = est_learning_rate(ptp_data,params,plotEstimation)
         trials = 1:length(ptp_data);
         
         % For optimize both rate and offset
-        y_hat = x(1) + (1 - exp(-x(2) * (trials - 1))) * (1-x(1))';
+        if strcmp(accuracy_type,'mouse_dist_euclid')
+            
+            y_hat = x(1)*(exp(-x(2) * (trials - 1)));
+        else
+            y_hat = x(1) + (1 - exp(-x(2) * (trials - 1))) * (1-x(1))';
+        end
         
         % If the intercept is below 0, have a terrible sse
         if x(1) < 0 

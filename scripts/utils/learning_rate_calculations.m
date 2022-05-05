@@ -1,26 +1,40 @@
+%% Description
+ 
+% This script will load the pilot data, and for each participant and each condition,
+% it will fit a learning curve to the data. The data being performance on 8 repetitions of PAs.
+% 
+% - If the performance variable is accuracy, it should increase over the 8 reps. 
+% This is fit with an inverse exponential, estimating the intercept and learning rate.
+% - If the performance variable is the mouse click euclidean error, that decreases over the 8 reps, 
+% so its fit with an exponential decay function.
+
 %% Estimate learning rates
 clear; clc;
 
 warning('off','MATLAB:table:RowsAddedExistingVars')
+
+saveData = 1;
 
 %% Load and prepare the dataset
 
 df = readtable('./results/pilots/preprocessed_data/mean_by_rep_all_types_long.csv');
 
 % Get only the needed accuracy types
-indices = strcmp(df.accuracy_type,'correct_exact') | strcmp(df.accuracy_type,'correct_one_square_away');
+indices = strcmp(df.accuracy_type,'correct_exact') | strcmp(df.accuracy_type,'correct_one_square_away') ...
+    | strcmp(df.accuracy_type,'mouse_dist_euclid');
 df = df(indices,:);
 
 % Transform strings to doubles
-df.correct_mean = str2double(df.correct_mean);
-df.correct_sd = str2double(df.correct_sd);
+% df.correct_mean = str2double(df.correct_mean);
+df.correct_sd   = str2double(df.correct_sd);
+df.accuracy_type = convertCharsToStrings(df.accuracy_type);
 
 all_ptp = unique(df.ptp_trunk);
-n_ptp = length(all_ptp);
+n_ptp   = length(all_ptp);
 
 all_conditions        = unique(df.condition);
 all_accuracy_types    = unique(df.accuracy_type);
-all_new_pa_statuses = unique(df.new_pa_status);
+all_new_pa_statuses   = unique(df.new_pa_status);
 
 %% Start the for loop
 params = [0.5,0.1];
@@ -40,7 +54,7 @@ for iPtp = 1:n_ptp
                 iNeigh
                 if strcmp(all_conditions{iCond},'no_schema') | strcmp(all_conditions{iCond},'random_locations')
                     
-                    if strcmp(all_new_pa_statuses{iNeigh},'island') | strcmp(all_new_pa_statuses{iNeigh},'neighbor')
+                    if strcmp(all_new_pa_statuses{iNeigh},'near_pa') | strcmp(all_new_pa_statuses{iNeigh},'far_pa')
                     
                         continue;
                     
@@ -59,10 +73,10 @@ for iPtp = 1:n_ptp
                     strcmp(df.new_pa_status,curr_neigh) &...
                     strcmp(df.accuracy_type,curr_acc));
                 
-%                 y = str2double(y);
-                
+%                 y = str2double(y);                
+
                 % Now fit the data
-                [out_params,fval] = est_learning_rate(y',params,plotFMSEstimation);
+                [out_params,fval] = est_learning_rate(y',params,plotFMSEstimation,curr_acc);
                 
                 % Save in a table
                 tbl.ptp_trunk{ctr} = curr_ptp;
@@ -80,5 +94,6 @@ for iPtp = 1:n_ptp
 end
 
 %% Save the table
-writetable(tbl,'./results/pilots/preprocessed_data/learning_rate_fits_matlab.csv');
-
+if saveData
+    writetable(tbl,'./results/pilots/preprocessed_data/learning_rate_fits_matlab.csv');
+end

@@ -52,6 +52,12 @@ if (!exists('exclude_border')){
         
 }
 
+if (!exists('saveData')){
+        
+        saveData <- T
+        
+}
+
 # Reorder the condition levels 
 session_results_all_ptp <- session_results_all_ptp %>%
         reorder_levels(condition, order = c('practice',
@@ -163,7 +169,8 @@ mean_by_border_dist_rep_long <-
         summarise(correct_mean = mean(accuracy_value, na.rm = T),
                   correct_sd   = sd(accuracy_value, na.rm = T),
                   correct_n    = as.numeric(n())) %>%
-        ungroup()
+        ungroup() %>%
+        mutate(border_dist = as.factor(border_dist))
 
 # Fit the learning curves #############################################
 # a <- mean_by_rep_all_types_long %>%
@@ -264,6 +271,8 @@ mean_by_rep_all_types_long <- merge(mean_by_rep_all_types_long,
                                            'new_pa_img_row_number_across_sessions'),
                                     all = TRUE)
 
+
+
 # Rough measures for learning #########################################
 
 ## For both/near/far-PA -----------------------------------------------
@@ -333,4 +342,71 @@ last_four_reps_by_border_dist_stats <-
                   n = n()) %>%
         ungroup()
 
+# Across every 8 repetitions, so we can plot learning for each border dist
+sum_stats_by_border_distance <-
+        mean_by_border_dist_rep_long %>%
+        group_by(ptp_trunk,
+                 condition,
+                 border_dist,
+                 new_pa_img_row_number_across_sessions,
+                 accuracy_type) %>%
+        summarise(correct_mean = mean(correct_mean, na.rm = T),
+                  correct_sd   = sd(correct_mean, na.rm = T)) %>%
+        ungroup()
 
+# Now, matlab computed learning rates ---------------------------------------
+
+ml_learning_rate <- import('./results/pilots/preprocessed_data/learning_rate_fits_matlab.csv')
+
+sum_stats_each_participant <- merge(sum_stats_each_participant,
+                                    ml_learning_rate,
+                                    by = c('ptp_trunk',
+                                           'condition',
+                                           'new_pa_status',
+                                           'accuracy_type'),
+                                    all.x = T)
+
+sum_stats_each_participant <- sum_stats_each_participant %>%
+        rename(sse = sse.x,
+               sse_ml = sse.y,
+               i_ml = intercept,
+               c_ml = learning_rate)
+
+# Calculate predicted y values and merge with the long form data
+learning_and_intercept_each_participants_y_hat_ml <-
+        ml_learning_rate %>%
+        group_by(ptp_trunk,
+                 condition,
+                 new_pa_status,
+                 accuracy_type) %>% 
+        mutate(y_hat_i_c_ml = list(fit_learning_and_intercept(c(intercept,learning_rate),
+                                                              seq(1:8),
+                                                              seq(1:8),
+                                                              'fit',
+                                                              accuracy_type,
+                                                              FALSE)),
+               new_pa_img_row_number_across_sessions = list(seq(1:8))) %>%
+        unnest(c(y_hat_i_c_ml,
+                 new_pa_img_row_number_across_sessions)) %>% 
+        select(c(ptp_trunk,
+                 condition,
+                 new_pa_status,
+                 accuracy_type,
+                 y_hat_i_c_ml,
+                 new_pa_img_row_number_across_sessions)) %>%
+        ungroup()
+
+mean_by_rep_all_types_long <- merge(mean_by_rep_all_types_long,
+                                    learning_and_intercept_each_participants_y_hat_ml,
+                                    by = c('ptp_trunk',
+                                           'condition',
+                                           'new_pa_status',
+                                           'accuracy_type',
+                                           'new_pa_img_row_number_across_sessions'),
+                                    all = TRUE)
+
+# Save everything ##################################
+
+if (saveData){
+        write_csv(mean_by_rep_all_types_long,'./results/pilots/preprocessed_data/mean_by_rep_all_types_long.csv')
+}

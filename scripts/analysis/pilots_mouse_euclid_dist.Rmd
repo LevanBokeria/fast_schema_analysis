@@ -75,7 +75,7 @@ fig_each_ptp <- mean_by_rep_all_types_long %>%
         ggplot(aes(x=new_pa_img_row_number_across_sessions,
                    y=correct_mean)) +
         geom_point() +
-        geom_line(size=1) +
+        geom_line() +
 
         # Add the y_hat learning and intercept
         geom_line(aes(x=new_pa_img_row_number_across_sessions,
@@ -124,7 +124,7 @@ fig_each_ptp <- mean_by_rep_all_types_long %>%
         ggplot(aes(x=new_pa_img_row_number_across_sessions,
                    y=correct_mean)) +
         geom_point() +
-        geom_line(size=1) +
+        geom_line() +
 
         # Add the y_hat learning and intercept
         geom_line(aes(x=new_pa_img_row_number_across_sessions,
@@ -173,13 +173,13 @@ fig_each_ptp <- mean_by_rep_all_types_long %>%
         ggplot(aes(x=new_pa_img_row_number_across_sessions,
                    y=correct_mean)) +
         geom_point() +
-        geom_line(size=1) +
+        geom_line() +
 
         # Add the y_hat learning and intercept
         geom_line(aes(x=new_pa_img_row_number_across_sessions,
                       y=y_hat_i_c),
                   size=1,
-                  color='red',
+                  color='orange',
                   linetype = 'longdash') +
 
         facet_grid(ptp_trunk~condition) +
@@ -194,7 +194,7 @@ fig_each_ptp <- mean_by_rep_all_types_long %>%
                 accuracy_type %in% c('mouse_dist_euclid'),
                 new_pa_status == 'both'
                 ),
-                aes(x=5.5,
+                aes(x=4.5,
                     y=200.15,
                     label = paste('conv=',
                                   as.character(convergence),
@@ -213,6 +213,99 @@ fig_each_ptp <- mean_by_rep_all_types_long %>%
 print(fig_each_ptp)
 
 ```
+
+```{r learning-curves-across-part, fig.width=13, fig.height=4}
+
+# Plot the fits
+fig_each_ptp <- mean_by_rep_all_types_long %>%
+        filter(accuracy_type %in% c('mouse_dist_euclid'),
+               new_pa_status == 'both') %>%
+        droplevels() %>%                
+        group_by(condition,
+                 new_pa_img_row_number_across_sessions) %>%
+        summarise(n = n(),
+                  correct_mean_across_ptp = mean(correct_mean,na.rm = T)) %>% 
+        ungroup() %>%
+        ggplot(aes(x=new_pa_img_row_number_across_sessions,
+                   y=correct_mean_across_ptp)) +
+        geom_point() +
+        geom_line() +
+
+        facet_grid(~condition) +
+        ggtitle(paste('Mouse euclidean distance; Across participants',sep='')) +
+        xlab('Image repetition') +
+        ylab('Mouse euclidean distance ') +
+        scale_x_continuous(breaks=c(1,2,3,4,5,6,7,8)) +
+        # theme(legend.position = 'top') +
+        geom_vline(xintercept = 4.5, linetype = 'dashed') 
+
+
+print(fig_each_ptp)
+
+
+```
+```{r learning-curves-across-part-ech-border-dist, fig.width=13, fig.height=4}
+
+# Plot the fits
+fig_each_ptp <- sum_stats_by_border_distance %>%
+        filter(accuracy_type %in% c('mouse_dist_euclid')) %>%
+        droplevels() %>%       
+        group_by(condition,
+                 border_dist,
+                 new_pa_img_row_number_across_sessions) %>%
+        summarise(n = n(),
+                  correct_mean_across_ptp = mean(correct_mean,na.rm = T)) %>% 
+        ungroup() %>%
+        ggplot(aes(x=new_pa_img_row_number_across_sessions,
+                   y=correct_mean_across_ptp,
+                   group=border_dist,
+                   color=border_dist)) +
+        geom_point() +
+        geom_line() +
+
+        facet_grid(~condition) +
+        ggtitle(paste('Mouse euclidean distance; Across participants; By border distance',sep='')) +
+        xlab('Image repetition') +
+        ylab('Mouse euclidean distance ') +
+        scale_x_continuous(breaks=c(1,2,3,4,5,6,7,8)) +
+        # theme(legend.position = 'top') +
+        geom_vline(xintercept = 4.5, linetype = 'dashed') 
+
+
+print(fig_each_ptp)
+
+# Plot the fits
+fig_each_ptp <- sum_stats_by_border_distance %>%
+        filter(accuracy_type %in% c('correct_exact','correct_one_square_away')) %>%
+        droplevels() %>%       
+        group_by(condition,
+                 border_dist,
+                 new_pa_img_row_number_across_sessions,
+                 accuracy_type) %>%
+        summarise(n = n(),
+                  correct_mean_across_ptp = mean(correct_mean,na.rm = T)) %>% 
+        ungroup() %>%
+        ggplot(aes(x=new_pa_img_row_number_across_sessions,
+                   y=correct_mean_across_ptp,
+                   group=border_dist,
+                   color=border_dist)) +
+        geom_point() +
+        geom_line() +
+
+        facet_grid(accuracy_type~condition) +
+        ggtitle(paste('Accuracy data; Across participants; By border distance',sep='')) +
+        xlab('Image repetition') +
+        ylab('Mouse euclidean distance ') +
+        scale_x_continuous(breaks=c(1,2,3,4,5,6,7,8)) +
+        # theme(legend.position = 'top') +
+        geom_vline(xintercept = 4.5, linetype = 'dashed') 
+
+
+print(fig_each_ptp)
+
+
+```
+
 
 ## Learning curves: Landmark vs non-landmark
 
