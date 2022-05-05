@@ -354,7 +354,7 @@ sum_stats_by_border_distance <-
                   correct_sd   = sd(correct_mean, na.rm = T)) %>%
         ungroup()
 
-# Now, matlab computed learning rates ---------------------------------------
+# Now, matlab computed learning rates ############################
 
 ml_learning_rate <- import('./results/pilots/preprocessed_data/learning_rate_fits_matlab.csv')
 
@@ -372,7 +372,12 @@ sum_stats_each_participant <- sum_stats_each_participant %>%
                i_ml = intercept,
                c_ml = learning_rate)
 
-# Calculate predicted y values and merge with the long form data
+## Log transform matlab learning rates --------------------------------
+sum_stats_each_participant <- sum_stats_each_participant %>%
+        mutate(c_ml_log = log(c_ml))
+
+
+## Calculate predicted y values and merge with the long form data ------------
 learning_and_intercept_each_participants_y_hat_ml <-
         ml_learning_rate %>%
         group_by(ptp_trunk,
