@@ -44,11 +44,25 @@ skew_across_cond_last_4 <- sum_stats_each_participant %>%
                                     'correct_one_square_away',
                                     'mouse_dist_euclid')) %>%
         droplevels() %>%
-        group_by(ptp_trunk,
-                 accuracy_type) %>%
-        summarise(last_four_mean = mean(last_four_mean,na.rm=T)) %>%
-        ungroup() %>%
+        # group_by(ptp_trunk,
+        #          accuracy_type) %>%
+        # summarise(last_four_mean = mean(last_four_mean,na.rm=T)) %>%
+        # ungroup() %>%
         group_by(accuracy_type) %>%
+        summarise(skew = skewness(last_four_mean, na.rm = T)) %>%
+        ungroup()
+
+skew_across_cond_by_border_last_4 <- last_four_reps_by_border_dist_stats %>%
+        filter(accuracy_type %in% c('correct_exact',
+                                    'correct_one_square_away',
+                                    'mouse_dist_euclid')) %>%
+        droplevels() %>%
+        # group_by(ptp_trunk,
+        #          accuracy_type) %>%
+        # summarise(last_four_mean = mean(last_four_mean,na.rm=T)) %>%
+        # ungroup() %>%
+        group_by(border_dist,
+                 accuracy_type) %>%
         summarise(skew = skewness(last_four_mean, na.rm = T)) %>%
         ungroup()
 
@@ -70,14 +84,13 @@ skew_across_cond_c_ml <- sum_stats_each_participant %>%
                                     'correct_one_square_away',
                                     'mouse_dist_euclid')) %>%
         droplevels() %>%
-        group_by(ptp_trunk,
-                 accuracy_type) %>%
-        summarise(c_ml = mean(c_ml,na.rm=T)) %>%
-        ungroup() %>%
+        # group_by(ptp_trunk,
+        #          accuracy_type) %>%
+        # summarise(c_ml = mean(c_ml,na.rm=T)) %>%
+        # ungroup() %>%
         group_by(accuracy_type) %>%
         summarise(skew = skewness(c_ml, na.rm = T)) %>%
         ungroup()
-
 
 # Now all the plots ###################################################
 
@@ -104,14 +117,35 @@ sum_stats_each_participant %>%
                accuracy_type %in% c('correct_exact',
                                     'correct_one_square_away')) %>%
         droplevels() %>%
+        # group_by(ptp_trunk,
+        #          accuracy_type) %>%
+        # summarise(last_four_mean = mean(last_four_mean,na.rm=T)) %>%
+        # ungroup() %>%        
         ggplot(aes(x=last_four_mean)) +
         geom_histogram() +
         geom_density(size=1) +
         facet_wrap(~accuracy_type, ncol = 1) +
         ggtitle('Across conditions; Accuracies.') +
         geom_text(data=filter(skew_across_cond_last_4, accuracy_type != 'mouse_dist_euclid'),
-                  aes(x=0.4,y=6,
+                  aes(x=0.4,y=5,
                       label = round(skew,2)))  
+
+last_four_reps_by_border_dist_stats %>%
+        filter(accuracy_type %in% c('correct_exact',
+                                    'correct_one_square_away')) %>%
+        droplevels() %>%
+        # group_by(ptp_trunk,
+        #          accuracy_type) %>%
+        # summarise(last_four_mean = mean(last_four_mean,na.rm=T)) %>%
+        # ungroup() %>%        
+        ggplot(aes(x=last_four_mean)) +
+        geom_histogram() +
+        geom_density(size=1) +
+        facet_grid(accuracy_type~border_dist) +
+        ggtitle('Across conditions; Accuracies.') +
+        geom_text(data=filter(skew_across_cond_by_border_last_4, accuracy_type != 'mouse_dist_euclid'),
+                  aes(x=0.4,y=5,
+                      label = round(skew,2)))
 
 
 ### Mouse eudlid dist ===============================
@@ -133,6 +167,10 @@ sum_stats_each_participant %>%
         filter(new_pa_status == 'both',
                accuracy_type %in% c('mouse_dist_euclid')) %>%
         droplevels() %>%
+        # group_by(ptp_trunk,
+        #          accuracy_type) %>%
+        # summarise(last_four_mean = mean(last_four_mean,na.rm=T)) %>%
+        # ungroup() %>%             
         ggplot(aes(x=last_four_mean, after_stat(density))) +
         geom_histogram() +
         geom_density(size=1) +
@@ -142,6 +180,21 @@ sum_stats_each_participant %>%
                   aes(x=0.4,y=0.03,
                       label = round(skew,2)))  
 
+last_four_reps_by_border_dist_stats %>%
+        filter(accuracy_type %in% c('mouse_dist_euclid')) %>%
+        droplevels() %>%
+        # group_by(ptp_trunk,
+        #          accuracy_type) %>%
+        # summarise(last_four_mean = mean(last_four_mean,na.rm=T)) %>%
+        # ungroup() %>%             
+        ggplot(aes(x=last_four_mean, after_stat(density))) +
+        geom_histogram() +
+        geom_density(size=1) +
+        facet_grid(accuracy_type~border_dist) +
+        ggtitle('Across conditions; Mouse dist') +
+        geom_text(data=filter(skew_across_cond_by_border_last_4, accuracy_type == 'mouse_dist_euclid'),
+                  aes(x=0.4,y=0.03,
+                      label = round(skew,2)))  
 
 ## Learning rates --------------------------------------------------------
 
@@ -156,7 +209,7 @@ sum_stats_each_participant %>%
         geom_histogram() +
         geom_density(size=1) +
         facet_grid(accuracy_type~condition) +
-        ggtitle('By condition; Accuracies') +
+        ggtitle('By condition; Learning rate') +
         geom_text(data=filter(skew_each_cond_c_ml, accuracy_type != 'mouse_dist_euclid'),
                   aes(x=0.4,y=4,
                       label = round(skew,2))) +
@@ -167,11 +220,15 @@ sum_stats_each_participant %>%
                accuracy_type %in% c('correct_exact',
                                     'correct_one_square_away')) %>%
         droplevels() %>%
-        ggplot(aes(x=c_ml,after_stat(density))) +
+        # group_by(ptp_trunk,
+        #          accuracy_type) %>%
+        # summarise(c_ml = mean(c_ml,na.rm=T)) %>%
+        # ungroup() %>%        
+        ggplot(aes(x=c_ml)) +
         geom_histogram() +
         geom_density(size=1) +
         facet_wrap(~accuracy_type, ncol = 1) +
-        ggtitle('Across conditions; Accuracies.') +
+        ggtitle('Across conditions; Learning rate') +
         geom_text(data=filter(skew_across_cond_c_ml, accuracy_type != 'mouse_dist_euclid'),
                   aes(x=0.4,y=6,
                       label = round(skew,2)))  
@@ -196,6 +253,10 @@ sum_stats_each_participant %>%
         filter(new_pa_status == 'both',
                accuracy_type %in% c('mouse_dist_euclid')) %>%
         droplevels() %>%
+        # group_by(ptp_trunk,
+        #          accuracy_type) %>%
+        # summarise(c_ml = mean(c_ml,na.rm=T)) %>%
+        # ungroup() %>%        
         ggplot(aes(x=c_ml)) +
         geom_histogram() +
         geom_density(size=1) +
