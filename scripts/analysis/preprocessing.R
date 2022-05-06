@@ -85,41 +85,28 @@ for (iName in filenames){
         grid_box_padding <- 60
         pa_width         <- 41.18
         
-        # 2. Now, from grid-border until wrapper-arena
-        session_input_data <- as_tibble(
-                rbindlist(json_decoded$inputData$all_sessions)
-                )
-        # 3. Add trial index to both, so we can then join them
-        session_input_data['trial_index'] <- session_input_data$trial_counter+1
-        session_input_data['session'] <- session_input_data['session']+1
-        
-        session_input_data <- session_input_data %>%
-                select(condition,
-                       session,
-                       new_pa_img,
-                       trial_index,
-                       `left_offset-schema-display`)
-        
+        # 2. For this participant, figure out the distance from wrapper_arena 
+        # left edge to the screen left edge
         session_results <- session_results %>%
-                group_by(condition,
-                         session) %>% 
-                mutate(trial_index = row_number()) %>%
-                ungroup()
+                mutate(left_offset_grid_box_wrapper_relative = left_offset+grid_box_padding,
+                       pa_left_edge_wrapper_relative = left_offset_grid_box_wrapper_relative + corr_col*41.66,
+                       pa_center_x_wrapper_relative = pa_left_edge_wrapper_relative + pa_width/2,
+                       pa_center_diff = round(pa_center_x - pa_center_x_wrapper_relative))
         
-        # 4. Now, join the two dataframes by condition, session, and trial index
-        # join only the relevant column from the session_input_data
-        session_results <- left_join(session_results,session_input_data,
-                       by = c('condition',
-                              'session',
-                              'trial_index',
-                              'new_pa_img'))
+        # Overwrite this info in the missed trials too
+        session_results$pa_center_diff <- session_results$pa_center_diff[!is.na(session_results$pa_center_diff)][1]
         
-        
+        # 3. Now, recalculate the pa_center_x
         session_results <- session_results %>%
-                mutate(left_offset_grid_box = `left_offset-schema-display`+grid_box_padding,
-                       pa_left_edge = left_offset_grid_box + corr_col*41.66,
-                       pa_center_x_2 = pa_left_edge + pa_width/2)
+                mutate(pa_center_x_recon = pa_center_diff + pa_left_edge_wrapper_relative + pa_width/2,
+                       pa_center_error = pa_center_x_recon - pa_center_x)
         
+        # 4. Make sure this error is not more than 1 pixel
+        error_max <- max(session_results$pa_center_error, na.rm = T)
+        
+        if (error_max > 1){
+                error('New calculated pa_center_x isnt close enough to pre-recorded one')
+        }
         
         # All the mutations
         session_results <- session_results %>%
@@ -131,10 +118,10 @@ for (iName in filenames){
                        rc_dist_euclid = sqrt(
                                (corr_row-row)^2 + (corr_col-col)^2
                        ),
-                       mouse_dist_cb = abs(mouse_clientX - pa_center_x) +
+                       mouse_dist_cb = abs(mouse_clientX - pa_center_x_recon) +
                                abs(mouse_clientY - pa_center_y),
                        mouse_error = sqrt(
-                               (mouse_clientX - pa_center_x)^2 +
+                               (mouse_clientX - pa_center_x_recon)^2 +
                                (mouse_clientY - pa_center_y)^2
                                ),
                        correct_exact = coalesce(correct,0L),
