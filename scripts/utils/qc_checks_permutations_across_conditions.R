@@ -73,7 +73,7 @@ if (load_existing_data){
                 droplevels() %>%
                 select(ptp_trunk,condition,
                        row,col,corr_row,corr_col,
-                       mouse_dist_euclid,
+                       mouse_error,
                        correct_exact,
                        correct_one_square_away,
                        border_dist,
@@ -120,7 +120,7 @@ if (load_existing_data){
                                        abs(rc_dist_euclid_shuff) < 1.9 ~ 1,
                                        TRUE ~ 0
                                ),
-                               mouse_dist_euclid_shuff = mouse_dist_euclid[rand_idx]) %>%
+                               mouse_error_shuff = mouse_error[rand_idx]) %>%
                         ungroup()
                 
                 # Now, just distill down to a summary statistic across trials
@@ -130,8 +130,8 @@ if (load_existing_data){
                                   mean_correct_one_square_away       = mean(correct_one_square_away, na.rm = T),
                                   mean_correct_exact_shuff = mean(correct_exact_shuff, na.rm = T),
                                   mean_correct_exact       = mean(correct_exact, na.rm = T),
-                                  mean_mouse_dist_euclid_shuff = mean(mouse_dist_euclid_shuff, na.rm = T),
-                                  mean_mouse_dist_euclid = mean(mouse_dist_euclid, na.rm = T)) %>%
+                                  mean_mouse_error_shuff = mean(mouse_error_shuff, na.rm = T),
+                                  mean_mouse_error = mean(mouse_error, na.rm = T)) %>%
                         ungroup()
                 
                 # Get the percentile, and distill even further

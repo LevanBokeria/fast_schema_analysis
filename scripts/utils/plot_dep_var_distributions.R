@@ -262,7 +262,7 @@ sum_stats_each_participant %>%
         geom_density(size=1) +
         facet_wrap(~accuracy_type, ncol = 1) +
         ggtitle('Across conditions; Mouse dist') +
-        geom_text(data=filter(skew_across_cond_c_ml, accuracy_type == 'mouse_dist_euclid'),
+        geom_text(data=filter(skew_across_cond_c_ml, accuracy_type == 'mouse_error'),
                   aes(x=0.4,y=3,
                       label = round(skew,2)))
 
