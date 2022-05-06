@@ -4,6 +4,7 @@
 source('./scripts/utils/load_all_libraries.R')
 source('./scripts/utils/functions_for_fitting_learning_curves.R')
 
+options(error = recover)
 
 ## Load the data -------------------------------------------------------------
 
@@ -48,8 +49,8 @@ if (qc_filter){
 if (!exists('exclude_border')){
         
         # Load the data 
-        exclude_border <- F
-        
+        exclude_border <- T
+        border_dist_to_exclude <- c(1,2,5)
 }
 
 if (!exists('saveData')){
@@ -85,6 +86,15 @@ if (exclude_border){
 
 # Start analysis ###############################################################
 
+# Drop the accuracy measures that we no longer analyze:
+session_results_all_ptp <- session_results_all_ptp %>%
+        select(-c( 'correct_rad_21',
+                   'correct_rad_42',
+                   'correct_rad_63',
+                   'correct_rad_84',
+                   'correct_rad_105'))
+
+
 ## Create long form accuracy type
 session_results_all_ptp_long_accuracy <- 
         session_results_all_ptp %>%
@@ -95,12 +105,7 @@ session_results_all_ptp_long_accuracy <-
         reorder_levels(accuracy_type, order = c(
                 'mouse_dist_euclid',
                 'correct_exact',
-                'correct_one_square_away',
-                'correct_rad_21',
-                'correct_rad_42',
-                'correct_rad_63',
-                'correct_rad_84',
-                'correct_rad_105'
+                'correct_one_square_away'
         ))
 
 ## Create one large long form for image repetitions
@@ -199,7 +204,7 @@ learning_and_intercept_each_participant <-
         group_by(ptp_trunk,
                  condition,
                  new_pa_status,
-                 accuracy_type) %>% 
+                 accuracy_type) %>%
         do(as.data.frame(
                 optim(c(i_start,c_start),
                       fit_learning_and_intercept,
@@ -224,18 +229,18 @@ learning_and_intercept_each_participant <-
         ungroup()
 
 # Perform log transformation of the learning rate
-learning_and_intercept_each_participant <- 
-        learning_and_intercept_each_participant %>%
-        mutate(c_log = log(c))
-# This will result in Inf for those c==0. Do empirical log-odds?
-print('CHANGE HOW SMALLEST LOG C GETS SUBSTITUTED')
-smallest_c_log <- learning_and_intercept_each_participant$c_log[!is.infinite(learning_and_intercept_each_participant$c_log)] %>% min()
-learning_and_intercept_each_participant <-
-        learning_and_intercept_each_participant %>%
-        mutate(c_log = case_when(
-                is.infinite(c_log) ~ smallest_c_log,
-                TRUE ~ c_log
-        ))
+# learning_and_intercept_each_participant <- 
+#         learning_and_intercept_each_participant %>%
+#         mutate(c_log = log(c))
+# # This will result in Inf for those c==0. Do empirical log-odds?
+# print('CHANGE HOW SMALLEST LOG C GETS SUBSTITUTED')
+# smallest_c_log <- learning_and_intercept_each_participant$c_log[!is.infinite(learning_and_intercept_each_participant$c_log)] %>% min()
+# learning_and_intercept_each_participant <-
+#         learning_and_intercept_each_participant %>%
+#         mutate(c_log = case_when(
+#                 is.infinite(c_log) ~ smallest_c_log,
+#                 TRUE ~ c_log
+#         ))
 
 # Add the predicted data to the dataframe
 learning_and_intercept_each_participants_y_hat <-
@@ -373,8 +378,8 @@ sum_stats_each_participant <- sum_stats_each_participant %>%
                c_ml = learning_rate)
 
 ## Log transform matlab learning rates --------------------------------
-sum_stats_each_participant <- sum_stats_each_participant %>%
-        mutate(c_ml_log = log(c_ml))
+# sum_stats_each_participant <- sum_stats_each_participant %>%
+#         mutate(c_ml_log = log(c_ml))
 
 
 ## Calculate predicted y values and merge with the long form data ------------

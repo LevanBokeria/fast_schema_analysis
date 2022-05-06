@@ -38,6 +38,10 @@ qc_filter <- F
 
 ```{r analyze-dependent-variables}
 
+exclude_border <- T
+
+border_dist_to_exclude <- c(1,2,5)
+
 source('./scripts/analysis/analyze_dependent_variables.R')
 
 
