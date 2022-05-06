@@ -234,7 +234,7 @@ print(fig_each_ptp)
 
 # Plot the fits
 fig_each_ptp <- mean_by_rep_all_types_long %>%
-        filter(accuracy_type %in% c('mouse_dist_euclid'),
+        filter(accuracy_type %in% c('mouse_error'),
                new_pa_status == 'both') %>%
         droplevels() %>%        
         ggplot(aes(x=new_pa_img_row_number_across_sessions,
@@ -258,7 +258,7 @@ fig_each_ptp <- mean_by_rep_all_types_long %>%
         geom_vline(xintercept = 4.5, linetype = 'dashed') +
         geom_text(data=filter(
                 learning_and_intercept_each_participant,
-                accuracy_type %in% c('mouse_dist_euclid'),
+                accuracy_type %in% c('mouse_error'),
                 new_pa_status == 'both'
                 ),
                 aes(x=5.5,
@@ -400,7 +400,7 @@ print(fig_each_ptp_lm)
 # For mouse euclidean distance
 
 fig_each_ptp_lm <- mean_by_rep_all_types_long %>%
-        filter(accuracy_type %in% c('mouse_dist_euclid'),
+        filter(accuracy_type %in% c('mouse_error'),
                new_pa_status %in% c('near_pa','far_pa'),
                !condition %in% c('random_locations','no_schema')) %>%
         droplevels() %>%        

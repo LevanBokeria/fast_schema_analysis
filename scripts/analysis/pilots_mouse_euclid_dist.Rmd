@@ -171,7 +171,7 @@ print(fig_each_ptp)
 
 # Plot the fits
 fig_each_ptp <- mean_by_rep_all_types_long %>%
-        filter(accuracy_type %in% c('mouse_dist_euclid'),
+        filter(accuracy_type %in% c('mouse_error'),
                new_pa_status == 'both') %>%
         droplevels() %>%        
         ggplot(aes(x=new_pa_img_row_number_across_sessions,
@@ -195,7 +195,7 @@ fig_each_ptp <- mean_by_rep_all_types_long %>%
         geom_vline(xintercept = 4.5, linetype = 'dashed') +
         geom_text(data=filter(
                 learning_and_intercept_each_participant,
-                accuracy_type %in% c('mouse_dist_euclid'),
+                accuracy_type %in% c('mouse_error'),
                 new_pa_status == 'both'
                 ),
                 aes(x=4.5,
@@ -222,7 +222,7 @@ print(fig_each_ptp)
 
 # Plot the fits
 fig_each_ptp <- mean_by_rep_all_types_long %>%
-        filter(accuracy_type %in% c('mouse_dist_euclid'),
+        filter(accuracy_type %in% c('mouse_error'),
                new_pa_status == 'both') %>%
         droplevels() %>%                
         group_by(condition,
@@ -253,7 +253,7 @@ print(fig_each_ptp)
 
 # Plot the fits
 fig_each_ptp <- sum_stats_by_border_distance %>%
-        filter(accuracy_type %in% c('mouse_dist_euclid')) %>%
+        filter(accuracy_type %in% c('mouse_error')) %>%
         droplevels() %>%       
         group_by(condition,
                  border_dist,
@@ -423,7 +423,7 @@ print(fig_each_ptp_lm)
 # For mouse euclidean distance
 
 fig_each_ptp_lm <- mean_by_rep_all_types_long %>%
-        filter(accuracy_type %in% c('mouse_dist_euclid'),
+        filter(accuracy_type %in% c('mouse_error'),
                new_pa_status %in% c('near_pa','far_pa'),
                !condition %in% c('random_locations','no_schema')) %>%
         droplevels() %>%        
@@ -485,7 +485,7 @@ print(fig_each_ptp_lm)
 
 sum_stats_each_participant %>%
         filter(new_pa_status == 'both',
-               accuracy_type == 'mouse_dist_euclid') %>%
+               accuracy_type == 'mouse_error') %>%
         droplevels() %>%
         ggplot(aes(x=condition,
                    y=last_four_mean)) +
@@ -509,7 +509,7 @@ sum_stats_each_participant %>%
 
 sum_stats_each_participant %>%
         filter(new_pa_status == 'both',
-               accuracy_type == 'mouse_dist_euclid') %>%
+               accuracy_type == 'mouse_error') %>%
         droplevels() %>%
         ggplot(aes(x=condition,
                    y=log_last_four_mean)) +
@@ -542,7 +542,7 @@ sum_stats_each_participant %>%
 sum_stats_each_participant %>%
         filter(new_pa_status != 'both',
                !condition %in% c('random_locations','no_schema'),
-               accuracy_type == 'mouse_dist_euclid') %>%
+               accuracy_type == 'mouse_error') %>%
         droplevels() %>%
         pivot_wider(id_cols = c(ptp_trunk,
                                 condition,
@@ -581,7 +581,7 @@ sum_stats_each_participant %>%
 
 sum_stats_each_participant %>%
         filter(new_pa_status != 'both',
-               accuracy_type %in% c('mouse_dist_euclid'),
+               accuracy_type %in% c('mouse_error'),
                !condition %in% c('random_locations','no_schema')) %>%
         droplevels() %>%
         ggplot(aes(x=new_pa_status,
@@ -607,7 +607,7 @@ sum_stats_each_participant %>%
 # Log C
 # sum_stats_each_participant %>%
 #         filter(new_pa_status != 'both',
-#                accuracy_type %in% c('mouse_dist_euclid'),
+#                accuracy_type %in% c('mouse_error'),
 #                !condition %in% c('random_locations','no_schema')) %>%
 #         droplevels() %>%
 #         ggplot(aes(x=new_pa_status,
@@ -640,7 +640,7 @@ Plot the difference values:
 sum_stats_each_participant %>%
         filter(new_pa_status != 'both',
                !condition %in% c('random_locations','no_schema'),
-               accuracy_type %in% c('mouse_dist_euclid')) %>%
+               accuracy_type %in% c('mouse_error')) %>%
         droplevels() %>%
         pivot_wider(id_cols = c(ptp_trunk,
                                 condition,

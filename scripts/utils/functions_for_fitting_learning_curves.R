@@ -3,7 +3,7 @@ fit_learning_and_intercept <- function(p,t,y,ret,measure,print_output){
         # Define the function:
 
         
-        if (measure[1] == 'mouse_dist_euclid'){
+        if (measure[1] == 'mouse_error'){
                 y_hat <- p[1] * (exp(-p[2]*(t-1)))
                 
         } else {

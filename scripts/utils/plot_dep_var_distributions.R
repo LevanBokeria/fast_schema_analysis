@@ -31,7 +31,7 @@ skew_each_cond_last_4 <- sum_stats_each_participant %>%
         filter(new_pa_status == 'both',
                accuracy_type %in% c('correct_exact',
                                     'correct_one_square_away',
-                                    'mouse_dist_euclid')) %>%
+                                    'mouse_error')) %>%
         droplevels() %>%
         group_by(condition,
                  accuracy_type) %>%
@@ -42,7 +42,7 @@ skew_across_cond_last_4 <- sum_stats_each_participant %>%
         filter(new_pa_status == 'both',
                accuracy_type %in% c('correct_exact',
                                     'correct_one_square_away',
-                                    'mouse_dist_euclid')) %>%
+                                    'mouse_error')) %>%
         droplevels() %>%
         # group_by(ptp_trunk,
         #          accuracy_type) %>%
@@ -55,7 +55,7 @@ skew_across_cond_last_4 <- sum_stats_each_participant %>%
 skew_across_cond_by_border_last_4 <- last_four_reps_by_border_dist_stats %>%
         filter(accuracy_type %in% c('correct_exact',
                                     'correct_one_square_away',
-                                    'mouse_dist_euclid')) %>%
+                                    'mouse_error')) %>%
         droplevels() %>%
         # group_by(ptp_trunk,
         #          accuracy_type) %>%
@@ -71,7 +71,7 @@ skew_each_cond_c_ml <- sum_stats_each_participant %>%
         filter(new_pa_status == 'both',
                accuracy_type %in% c('correct_exact',
                                     'correct_one_square_away',
-                                    'mouse_dist_euclid')) %>%
+                                    'mouse_error')) %>%
         droplevels() %>%
         group_by(condition,
                  accuracy_type) %>%
@@ -82,7 +82,7 @@ skew_across_cond_c_ml <- sum_stats_each_participant %>%
         filter(new_pa_status == 'both',
                accuracy_type %in% c('correct_exact',
                                     'correct_one_square_away',
-                                    'mouse_dist_euclid')) %>%
+                                    'mouse_error')) %>%
         droplevels() %>%
         # group_by(ptp_trunk,
         #          accuracy_type) %>%
@@ -108,7 +108,7 @@ sum_stats_each_participant %>%
         geom_density(size=1) +
         facet_grid(accuracy_type~condition) +
         ggtitle('By condition; Accuracies') +
-        geom_text(data=filter(skew_each_cond_last_4, accuracy_type != 'mouse_dist_euclid'),
+        geom_text(data=filter(skew_each_cond_last_4, accuracy_type != 'mouse_error'),
                   aes(x=0.4,y=4,
                       label = round(skew,2)))
 
@@ -126,7 +126,7 @@ sum_stats_each_participant %>%
         geom_density(size=1) +
         facet_wrap(~accuracy_type, ncol = 1) +
         ggtitle('Across conditions; Accuracies.') +
-        geom_text(data=filter(skew_across_cond_last_4, accuracy_type != 'mouse_dist_euclid'),
+        geom_text(data=filter(skew_across_cond_last_4, accuracy_type != 'mouse_error'),
                   aes(x=0.4,y=5,
                       label = round(skew,2)))  
 
@@ -143,7 +143,7 @@ last_four_reps_by_border_dist_stats %>%
         geom_density(size=1) +
         facet_grid(accuracy_type~border_dist) +
         ggtitle('Across conditions; Accuracies.') +
-        geom_text(data=filter(skew_across_cond_by_border_last_4, accuracy_type != 'mouse_dist_euclid'),
+        geom_text(data=filter(skew_across_cond_by_border_last_4, accuracy_type != 'mouse_error'),
                   aes(x=0.4,y=5,
                       label = round(skew,2)))
 
@@ -152,20 +152,20 @@ last_four_reps_by_border_dist_stats %>%
 
 sum_stats_each_participant %>%
         filter(new_pa_status == 'both',
-               accuracy_type %in% c('mouse_dist_euclid')) %>%
+               accuracy_type %in% c('mouse_error')) %>%
         droplevels() %>%
         ggplot(aes(x=last_four_mean, after_stat(density))) +
         geom_histogram() +
         geom_density(size=1) +
         facet_grid(accuracy_type~condition) +
         ggtitle('By condition; Mouse dist') +
-        geom_text(data=filter(skew_each_cond_last_4, accuracy_type == 'mouse_dist_euclid'),
+        geom_text(data=filter(skew_each_cond_last_4, accuracy_type == 'mouse_error'),
                   aes(x=0.4,y=0.04,
                       label = round(skew,2)))
 
 sum_stats_each_participant %>%
         filter(new_pa_status == 'both',
-               accuracy_type %in% c('mouse_dist_euclid')) %>%
+               accuracy_type %in% c('mouse_error')) %>%
         droplevels() %>%
         # group_by(ptp_trunk,
         #          accuracy_type) %>%
@@ -176,12 +176,12 @@ sum_stats_each_participant %>%
         geom_density(size=1) +
         facet_wrap(~accuracy_type, ncol = 1) +
         ggtitle('Across conditions; Mouse dist') +
-        geom_text(data=filter(skew_across_cond_last_4, accuracy_type == 'mouse_dist_euclid'),
+        geom_text(data=filter(skew_across_cond_last_4, accuracy_type == 'mouse_error'),
                   aes(x=0.4,y=0.03,
                       label = round(skew,2)))  
 
 last_four_reps_by_border_dist_stats %>%
-        filter(accuracy_type %in% c('mouse_dist_euclid')) %>%
+        filter(accuracy_type %in% c('mouse_error')) %>%
         droplevels() %>%
         # group_by(ptp_trunk,
         #          accuracy_type) %>%
@@ -192,7 +192,7 @@ last_four_reps_by_border_dist_stats %>%
         geom_density(size=1) +
         facet_grid(accuracy_type~border_dist) +
         ggtitle('Across conditions; Mouse dist') +
-        geom_text(data=filter(skew_across_cond_by_border_last_4, accuracy_type == 'mouse_dist_euclid'),
+        geom_text(data=filter(skew_across_cond_by_border_last_4, accuracy_type == 'mouse_error'),
                   aes(x=0.4,y=0.03,
                       label = round(skew,2)))  
 
@@ -210,7 +210,7 @@ sum_stats_each_participant %>%
         geom_density(size=1) +
         facet_grid(accuracy_type~condition) +
         ggtitle('By condition; Learning rate') +
-        geom_text(data=filter(skew_each_cond_c_ml, accuracy_type != 'mouse_dist_euclid'),
+        geom_text(data=filter(skew_each_cond_c_ml, accuracy_type != 'mouse_error'),
                   aes(x=0.4,y=4,
                       label = round(skew,2))) +
         coord_cartesian(ylim = c(0,15))
@@ -229,7 +229,7 @@ sum_stats_each_participant %>%
         geom_density(size=1) +
         facet_wrap(~accuracy_type, ncol = 1) +
         ggtitle('Across conditions; Learning rate') +
-        geom_text(data=filter(skew_across_cond_c_ml, accuracy_type != 'mouse_dist_euclid'),
+        geom_text(data=filter(skew_across_cond_c_ml, accuracy_type != 'mouse_error'),
                   aes(x=0.4,y=6,
                       label = round(skew,2)))  
 
@@ -238,20 +238,20 @@ sum_stats_each_participant %>%
 
 sum_stats_each_participant %>%
         filter(new_pa_status == 'both',
-               accuracy_type %in% c('mouse_dist_euclid')) %>%
+               accuracy_type %in% c('mouse_error')) %>%
         droplevels() %>%
         ggplot(aes(x=c_ml)) +
         geom_histogram() +
         geom_density(size=1) +
         facet_grid(accuracy_type~condition) +
         ggtitle('By condition; Mouse dist') +
-        geom_text(data=filter(skew_each_cond_c_ml, accuracy_type == 'mouse_dist_euclid'),
+        geom_text(data=filter(skew_each_cond_c_ml, accuracy_type == 'mouse_error'),
                   aes(x=0.4,y=4,
                       label = round(skew,2)))
 
 sum_stats_each_participant %>%
         filter(new_pa_status == 'both',
-               accuracy_type %in% c('mouse_dist_euclid')) %>%
+               accuracy_type %in% c('mouse_error')) %>%
         droplevels() %>%
         # group_by(ptp_trunk,
         #          accuracy_type) %>%

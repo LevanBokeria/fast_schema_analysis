@@ -73,7 +73,7 @@ sum_stats_each_participant <- sum_stats_each_participant %>%
 sum_stats_each_participant %>%
         filter(accuracy_type %in% c('correct_exact',
                                     'correct_one_square_away',
-                                    'mouse_dist_euclid')) %>%
+                                    'mouse_error')) %>%
         ggplot(aes(x=i,
                    y=i_ml,
                    color = new_pa_status)) +
@@ -99,7 +99,7 @@ sum_stats_each_participant %>%
         facet_wrap(~accuracy_type)
 
 sum_stats_each_participant %>%
-        filter(accuracy_type == 'mouse_dist_euclid') %>%
+        filter(accuracy_type == 'mouse_error') %>%
         droplevels() %>%
         ggplot(aes(x=c,
                    y=c_ml,
@@ -109,13 +109,13 @@ sum_stats_each_participant %>%
 
 # Diff in i
 sum_stats_each_participant %>%
-        filter(accuracy_type == 'mouse_dist_euclid') %>%
+        filter(accuracy_type == 'mouse_error') %>%
         ggplot(aes(x = seq(1:nrow(.)),y = i_diff)) +
         geom_point()
 
 # Diff in c
 sum_stats_each_participant %>%
-        filter(accuracy_type == 'mouse_dist_euclid') %>%
+        filter(accuracy_type == 'mouse_error') %>%
         # filter(c_diff > -5) %>%
         ggplot(aes(x = seq(1:nrow(.)),y = c_diff)) +
         geom_point()
@@ -245,7 +245,7 @@ print(fig_each_ptp)
 
 # Plot the fits
 fig_each_ptp <- mean_by_rep_all_types_long %>%
-        filter(accuracy_type %in% c('mouse_dist_euclid'),
+        filter(accuracy_type %in% c('mouse_error'),
                new_pa_status == 'both') %>%
         droplevels() %>%        
         ggplot(aes(x=new_pa_img_row_number_across_sessions,
@@ -268,15 +268,15 @@ fig_each_ptp <- mean_by_rep_all_types_long %>%
                   linetype = 'twodash') +         
 
         facet_grid(ptp_trunk~condition) +
-        ggtitle(paste('mouse_dist_euclid: real and estimate data',sep='')) +
+        ggtitle(paste('mouse_error: real and estimate data',sep='')) +
         xlab('Image repetition') +
-        ylab('mouse_dist_euclid') +
+        ylab('mouse_error') +
         scale_x_continuous(breaks=c(1,2,3,4,5,6,7,8)) +
         # theme(legend.position = 'top') +
         geom_vline(xintercept = 4.5, linetype = 'dashed') +
         geom_text(data=filter(
                 sum_stats_each_participant,
-                accuracy_type %in% c('mouse_dist_euclid'),
+                accuracy_type %in% c('mouse_error'),
                 new_pa_status == 'both'
                 ),
                 aes(x=5.5,

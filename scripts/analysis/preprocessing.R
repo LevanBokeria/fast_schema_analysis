@@ -91,7 +91,7 @@ for (iName in filenames){
                        ),
                        mouse_dist_cb = abs(mouse_clientX - pa_center_x) +
                                abs(mouse_clientY - pa_center_y),
-                       mouse_dist_euclid = sqrt(
+                       mouse_error = sqrt(
                                (mouse_clientX - pa_center_x)^2 +
                                (mouse_clientY - pa_center_y)^2
                                ),
@@ -101,23 +101,23 @@ for (iName in filenames){
                                TRUE ~ 0
                        ),
                        correct_rad_21 = case_when(
-                               abs(mouse_dist_euclid) <= 21 ~ 1,
+                               abs(mouse_error) <= 21 ~ 1,
                                TRUE ~ 0
                        ),                       
                        correct_rad_42 = case_when(
-                               abs(mouse_dist_euclid) <= 42 ~ 1,
+                               abs(mouse_error) <= 42 ~ 1,
                                TRUE ~ 0
                        ),                                              
                        correct_rad_63 = case_when(
-                               abs(mouse_dist_euclid) <= 63 ~ 1,
+                               abs(mouse_error) <= 63 ~ 1,
                                TRUE ~ 0
                        ),
                        correct_rad_84 = case_when(
-                               abs(mouse_dist_euclid) <= 84 ~ 1,
+                               abs(mouse_error) <= 84 ~ 1,
                                TRUE ~ 0
                        ),                       
                        correct_rad_105 = case_when(
-                               abs(mouse_dist_euclid) <= 105 ~ 1,
+                               abs(mouse_error) <= 105 ~ 1,
                                TRUE ~ 0
                        )
                 )

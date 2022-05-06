@@ -79,12 +79,12 @@ if (load_existing_data){
                        border_dist,
                        near_pa)
         
-        df_all_ptp <- df_all_ptp %>%
-                filter(near_pa == FALSE)
+        # df_all_ptp <- df_all_ptp %>%
+        #         filter(near_pa == FALSE)
         
         ctr <- 1
         
-        niter <- 10000
+        niter <- 1000
         
         for (iPtp in levels(df_all_ptp$ptp_trunk)){
                 
@@ -119,7 +119,8 @@ if (load_existing_data){
                                correct_one_square_away_shuff = case_when(
                                        abs(rc_dist_euclid_shuff) < 1.9 ~ 1,
                                        TRUE ~ 0
-                               )) %>%
+                               ),
+                               mouse_dist_euclid_shuff = mouse_dist_euclid[rand_idx]) %>%
                         ungroup()
                 
                 # Now, just distill down to a summary statistic across trials
@@ -128,7 +129,9 @@ if (load_existing_data){
                         summarise(mean_correct_one_square_away_shuff = mean(correct_one_square_away_shuff, na.rm = T),
                                   mean_correct_one_square_away       = mean(correct_one_square_away, na.rm = T),
                                   mean_correct_exact_shuff = mean(correct_exact_shuff, na.rm = T),
-                                  mean_correct_exact       = mean(correct_exact, na.rm = T)) %>%
+                                  mean_correct_exact       = mean(correct_exact, na.rm = T),
+                                  mean_mouse_dist_euclid_shuff = mean(mouse_dist_euclid_shuff, na.rm = T),
+                                  mean_mouse_dist_euclid = mean(mouse_dist_euclid, na.rm = T)) %>%
                         ungroup()
                 
                 # Get the percentile, and distill even further

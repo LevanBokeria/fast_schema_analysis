@@ -98,12 +98,12 @@ session_results_all_ptp <- session_results_all_ptp %>%
 ## Create long form accuracy type
 session_results_all_ptp_long_accuracy <- 
         session_results_all_ptp %>%
-        pivot_longer(cols = c(starts_with("correct_"),'mouse_dist_euclid'),
+        pivot_longer(cols = c(starts_with("correct_"),'mouse_error'),
                      names_to = 'accuracy_type',
                      values_to = 'accuracy_value') %>%
         mutate(accuracy_type = as.factor(accuracy_type)) %>%
         reorder_levels(accuracy_type, order = c(
-                'mouse_dist_euclid',
+                'mouse_error',
                 'correct_exact',
                 'correct_one_square_away'
         ))
