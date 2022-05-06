@@ -205,6 +205,7 @@ learning_and_intercept_each_participant <-
                  condition,
                  new_pa_status,
                  accuracy_type) %>%
+        summarise(n = n()) %>% View()
         do(as.data.frame(
                 optim(c(i_start,c_start),
                       fit_learning_and_intercept,
