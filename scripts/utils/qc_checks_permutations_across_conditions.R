@@ -37,7 +37,7 @@ ptp_to_filter <- c() # so EXCLUDE these
 
 border_away_to_analyze <- c(1,2,3,4,5) # so KEEP these
 
-load_existing_data <- T
+load_existing_data <- F
 
 saveData <- F
 # Start analysis ###########################################################
@@ -73,10 +73,14 @@ if (load_existing_data){
                 droplevels() %>%
                 select(ptp_trunk,condition,
                        row,col,corr_row,corr_col,
-                       correct_exact,correct_one_square_away,border_dist,adjacent_neighbor)
+                       mouse_dist_euclid,
+                       correct_exact,
+                       correct_one_square_away,
+                       border_dist,
+                       near_pa)
         
         df_all_ptp <- df_all_ptp %>%
-                filter(adjacent_neighbor == FALSE)
+                filter(near_pa == FALSE)
         
         ctr <- 1
         
@@ -176,14 +180,14 @@ if (load_existing_data){
         if (saveData){
                 results_bound %>% write_csv(
                         paste0(
-                                './results/pilots/preprocessed_data/qc_permutations_raw_across_conditions_border_dist_',
+                                './results/pilots/qc/qc_permutations_raw_across_conditions_border_dist_',
                                 paste(border_away_to_analyze,collapse = '_'),
                                 '.csv'
                         )
                 )
                 df_percentile %>% write_csv(
                         paste0(
-                                './results/pilots/preprocessed_data/qc_permutations_summary_across_conditions_border_dist_',
+                                './results/pilots/qc/qc_permutations_summary_across_conditions_border_dist_',
                                 paste(border_away_to_analyze,collapse = '_'),
                                 '.csv'
                         )
