@@ -78,6 +78,48 @@ for (iName in filenames){
                 stop('n trials per session is wrong!')
         }
 
+        # For missed trials, we didn't record PA location center... So, 
+        # recalculate now
+        
+        # 1. Define how much was the padding around grid-box until grid-border
+        grid_box_padding <- 60
+        pa_width         <- 41.18
+        
+        # 2. Now, from grid-border until wrapper-arena
+        session_input_data <- as_tibble(
+                rbindlist(json_decoded$inputData$all_sessions)
+                )
+        # 3. Add trial index to both, so we can then join them
+        session_input_data['trial_index'] <- session_input_data$trial_counter+1
+        session_input_data['session'] <- session_input_data['session']+1
+        
+        session_input_data <- session_input_data %>%
+                select(condition,
+                       session,
+                       new_pa_img,
+                       trial_index,
+                       `left_offset-schema-display`)
+        
+        session_results <- session_results %>%
+                group_by(condition,
+                         session) %>% 
+                mutate(trial_index = row_number()) %>%
+                ungroup()
+        
+        # 4. Now, join the two dataframes by condition, session, and trial index
+        # join only the relevant column from the session_input_data
+        session_results <- left_join(session_results,session_input_data,
+                       by = c('condition',
+                              'session',
+                              'trial_index',
+                              'new_pa_img'))
+        
+        
+        session_results <- session_results %>%
+                mutate(left_offset_grid_box = `left_offset-schema-display`+grid_box_padding,
+                       pa_left_edge = left_offset_grid_box + corr_col*41.66,
+                       pa_center_x_2 = pa_left_edge + pa_width/2)
+        
         
         # All the mutations
         session_results <- session_results %>%
