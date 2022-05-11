@@ -21,12 +21,13 @@ df = readtable('./results/pilots/preprocessed_data/mean_by_rep_all_types_long.cs
 
 % Get only the needed accuracy types
 indices = strcmp(df.accuracy_type,'correct_exact') | strcmp(df.accuracy_type,'correct_one_square_away') ...
-    | strcmp(df.accuracy_type,'mouse_dist_euclid');
+    | strcmp(df.accuracy_type,'mouse_error');
 df = df(indices,:);
 
 % Transform strings to doubles
 % df.correct_mean = str2double(df.correct_mean);
-df.correct_sd   = str2double(df.correct_sd);
+df.correct_sd    = str2double(df.correct_sd);
+df.correct_mean  = str2double(df.correct_mean);
 df.accuracy_type = convertCharsToStrings(df.accuracy_type);
 
 all_ptp = unique(df.ptp_trunk);

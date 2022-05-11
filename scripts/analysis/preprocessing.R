@@ -33,7 +33,7 @@ filenames <- c('jatos_results_20211027204610',
                'jatos_results_20211028204501',
                'jatos_results_20211028204526')
 
-filenames <- 'jatos_results_20211028173435'
+# filenames <- 'jatos_results_20211028173435'
 
 session_results_all_ptp <- NULL
 feedback_all_ptp <- NULL

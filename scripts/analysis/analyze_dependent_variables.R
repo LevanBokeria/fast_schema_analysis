@@ -4,7 +4,7 @@
 source('./scripts/utils/load_all_libraries.R')
 source('./scripts/utils/functions_for_fitting_learning_curves.R')
 
-options(error = recover)
+# options(error = recover)
 
 ## Load the data -------------------------------------------------------------
 
@@ -49,7 +49,7 @@ if (qc_filter){
 if (!exists('exclude_border')){
         
         # Load the data 
-        exclude_border <- T
+        exclude_border <- F
         border_dist_to_exclude <- c(1,2,5)
 }
 
@@ -205,7 +205,6 @@ learning_and_intercept_each_participant <-
                  condition,
                  new_pa_status,
                  accuracy_type) %>%
-        summarise(n = n()) %>% View()
         do(as.data.frame(
                 optim(c(i_start,c_start),
                       fit_learning_and_intercept,
