@@ -67,6 +67,33 @@ for (iPtp in as.vector(all_ptp)){
 
 # Learning curve plots
 
+## Plot mouse click heatplots for each participant, each session
+
+```{r mouse-heat-plots, fig.width=15, fig.height=20}
+
+session_results_all_ptp_long_accuracy %>%
+        filter(accuracy_type == 'mouse_error',
+               session == 2) %>%
+        droplevels() %>%
+        ggplot(aes(mouse_clientX - left_offset,mouse_clientY - top_offset)) +
+        geom_point(alpha=0.3) +
+        geom_point(aes(pa_center_x - left_offset,pa_center_y - top_offset),
+                   color='red',
+                   size=2) +
+        # geom_density_2d_filled(alpha = 0.3) +
+        facet_grid(ptp_trunk~condition) +
+        ggtitle('Session 2: Mouse click locations relative to PA')
+
+```
+
+
+## Average mouse error by session?
+
+```{r mouse-error-by-session}
+
+```
+
+
 ## Raw learning curves + learning fits
 
 ```{r raw-learning-curves-and-fits, fig.width=13, fig.height=12}

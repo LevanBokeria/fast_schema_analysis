@@ -153,8 +153,8 @@ for (iName in filenames){
                        mouse_dist_cb = abs(mouse_clientX - pa_center_x) +
                                        abs(mouse_clientY - pa_center_y),
                        mouse_error = sqrt(
-                               (mouse_clientX - pa_center_x_recon)^2 +
-                               (mouse_clientY - pa_center_y_recon)^2
+                               (mouse_clientX - pa_center_x)^2 +
+                               (mouse_clientY - pa_center_y)^2
                                ),
                        correct_exact = coalesce(correct,0L),
                        correct_one_square_away = case_when(

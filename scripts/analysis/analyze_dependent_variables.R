@@ -108,7 +108,7 @@ session_results_all_ptp_long_accuracy <-
                 'correct_one_square_away'
         ))
 
-## Create one large long form for image repetitions
+## All data: long form for image repetitions --------------------------
 mean_by_rep_long <- 
         session_results_all_ptp_long_accuracy %>%
         droplevels() %>% 
@@ -119,7 +119,8 @@ mean_by_rep_long <-
         summarise(correct_mean = mean(accuracy_value, na.rm = T),
                   correct_sd = sd(accuracy_value, na.rm = T),
                   correct_n = n()) %>%
-        ungroup()
+        ungroup() %>% 
+        mutate(border_dist = 'all')
 
 
 # Calculate mean for far_pa vs non far_pa
@@ -135,14 +136,92 @@ mean_by_landmark_rep_long <-
         summarise(correct_mean = mean(accuracy_value, na.rm = T),
                   correct_sd = sd(accuracy_value, na.rm = T),
                   correct_n = as.numeric(n())) %>%
-        ungroup() 
+        ungroup() %>%
+        mutate(border_dist = 'all')
+
+## Now the same for just border dist 3 and 4 -------------------
+mean_by_rep_long_bord_dist_3_4 <- 
+        session_results_all_ptp_long_accuracy %>%
+        filter(border_dist %in% c(3,4)) %>%
+        droplevels() %>% 
+        group_by(ptp_trunk,
+                 condition,
+                 new_pa_img_row_number_across_sessions,
+                 accuracy_type,
+                 .drop = FALSE) %>% 
+        summarise(correct_mean = mean(accuracy_value, na.rm = T),
+                  correct_sd = sd(accuracy_value, na.rm = T),
+                  correct_n = n()) %>%
+        ungroup() %>% 
+        mutate(border_dist = '3_4')
+
+
+# Calculate mean for far_pa vs non far_pa
+mean_by_landmark_rep_long_bord_dist_3_4 <-
+        session_results_all_ptp_long_accuracy %>%
+        filter(!condition %in% c('random_locations','no_schema')) %>%
+        droplevels() %>%
+        group_by(ptp_trunk,
+                 condition,
+                 near_pa,
+                 new_pa_img_row_number_across_sessions,
+                 accuracy_type,
+                 .drop = FALSE) %>%
+        summarise(correct_mean = mean(accuracy_value, na.rm = T),
+                  correct_sd = sd(accuracy_value, na.rm = T),
+                  correct_n = as.numeric(n())) %>%
+        ungroup() %>% 
+        mutate(border_dist = '3_4')
+
+## Now the same for each border distance -------------------
+mean_by_rep_long_all_bord_dist <- 
+        session_results_all_ptp_long_accuracy %>%
+        group_by(ptp_trunk,
+                 condition,
+                 border_dist,
+                 new_pa_img_row_number_across_sessions,
+                 accuracy_type,
+                 .drop = FALSE) %>% 
+        summarise(correct_mean = mean(accuracy_value, na.rm = T),
+                  correct_sd = sd(accuracy_value, na.rm = T),
+                  correct_n = n()) %>%
+        ungroup() %>%
+        mutate(border_dist = as.character(border_dist))
+
+# Calculate mean for far_pa vs non far_pa
+mean_by_landmark_rep_long_all_bord_dist <-
+        session_results_all_ptp_long_accuracy %>%
+        filter(!condition %in% c('random_locations','no_schema')) %>%
+        droplevels() %>%
+        group_by(ptp_trunk,
+                 condition,
+                 border_dist,
+                 near_pa,
+                 new_pa_img_row_number_across_sessions,
+                 accuracy_type,
+                 .drop = FALSE) %>%
+        summarise(correct_mean = mean(accuracy_value, na.rm = T),
+                  correct_sd = sd(accuracy_value, na.rm = T),
+                  correct_n = as.numeric(n())) %>%
+        ungroup() %>%
+        mutate(border_dist = as.character(border_dist))
 
 # Combine these
-mean_by_rep_all_types_long <- bind_rows(mean_by_rep_long,mean_by_landmark_rep_long)
+mean_by_rep_all_types_long <- bind_rows(mean_by_rep_long,
+                                        mean_by_landmark_rep_long,
+                                        mean_by_rep_long_bord_dist_3_4,
+                                        mean_by_landmark_rep_long_bord_dist_3_4,
+                                        mean_by_rep_long_all_bord_dist,
+                                        mean_by_landmark_rep_long_all_bord_dist) %>%
+        mutate(border_dist = as.factor(border_dist))
 
 # Remove extra variables
-rm(mean_by_rep_long)
-rm(mean_by_landmark_rep_long)
+rm(mean_by_rep_long,
+   mean_by_landmark_rep_long,
+   mean_by_rep_long_bord_dist_3_4,
+   mean_by_landmark_rep_long_bord_dist_3_4,
+   mean_by_rep_long_all_bord_dist,
+   mean_by_landmark_rep_long_all_bord_dist)
 
 # Rename the near pa column to new_pa_status
 mean_by_rep_all_types_long <- mean_by_rep_all_types_long %>%
@@ -159,23 +238,6 @@ mean_by_rep_all_types_long <-
         mean_by_rep_all_types_long %>%
         mutate(ci_95 = 1.96*correct_sd/sqrt(correct_n))
 
-
-## Calculate for each distance from border -----------------------------------
-
-mean_by_border_dist_rep_long <-
-        session_results_all_ptp_long_accuracy %>%
-        droplevels() %>%
-        group_by(ptp_trunk,
-                 condition,
-                 border_dist,
-                 new_pa_img_row_number_across_sessions,
-                 session,
-                 accuracy_type) %>%
-        summarise(correct_mean = mean(accuracy_value, na.rm = T),
-                  correct_sd   = sd(accuracy_value, na.rm = T),
-                  correct_n    = as.numeric(n())) %>%
-        ungroup() %>%
-        mutate(border_dist = as.factor(border_dist))
 
 # Fit the learning curves #############################################
 # a <- mean_by_rep_all_types_long %>%
@@ -198,11 +260,13 @@ mean_by_border_dist_rep_long <-
 #       upper = c(i_upper,c_upper)
 # )
 
-
 learning_and_intercept_each_participant <-
         mean_by_rep_all_types_long %>%
+        filter(border_dist %in% c('all','3_4')) %>%
+        droplevels() %>%
         group_by(ptp_trunk,
                  condition,
+                 border_dist,
                  new_pa_status,
                  accuracy_type) %>%
         do(as.data.frame(
@@ -242,11 +306,14 @@ learning_and_intercept_each_participant <-
 #                 TRUE ~ c_log
 #         ))
 
-# Add the predicted data to the dataframe
+## Add the predicted data to the dataframe ------------------------------
+
+# All data
 learning_and_intercept_each_participants_y_hat <-
         learning_and_intercept_each_participant %>%
         group_by(ptp_trunk,
                  condition,
+                 border_dist,
                  new_pa_status,
                  accuracy_type) %>% 
         rowwise() %>%
@@ -261,6 +328,7 @@ learning_and_intercept_each_participants_y_hat <-
                  new_pa_img_row_number_across_sessions)) %>% 
         select(c(ptp_trunk,
                  condition,
+                 border_dist,
                  new_pa_status,
                  accuracy_type,
                  y_hat_i_c,
@@ -271,12 +339,11 @@ mean_by_rep_all_types_long <- merge(mean_by_rep_all_types_long,
                                     learning_and_intercept_each_participants_y_hat,
                                     by = c('ptp_trunk',
                                            'condition',
+                                           'border_dist',
                                            'new_pa_status',
                                            'accuracy_type',
                                            'new_pa_img_row_number_across_sessions'),
                                     all = TRUE)
-
-
 
 # Rough measures for learning #########################################
 
