@@ -33,6 +33,8 @@ filenames <- c('jatos_results_20211027204610',
                'jatos_results_20211028204501',
                'jatos_results_20211028204526')
 
+filenames <- 'jatos_results_20211028173435'
+
 session_results_all_ptp <- NULL
 feedback_all_ptp <- NULL
 listings_all_ptp <- NULL
@@ -84,29 +86,59 @@ for (iName in filenames){
         # 1. Define how much was the padding around grid-box until grid-border
         grid_box_padding <- 60
         pa_width         <- 41.18
+        pa_box_width     <- 41.66
         
         # 2. For this participant, figure out the distance from wrapper_arena 
         # left edge to the screen left edge
         session_results <- session_results %>%
                 mutate(left_offset_grid_box_wrapper_relative = left_offset+grid_box_padding,
-                       pa_left_edge_wrapper_relative = left_offset_grid_box_wrapper_relative + corr_col*41.66,
+                       top_offset_grid_box_wrapper_relative  = top_offset +grid_box_padding,
+                       
+                       pa_left_edge_wrapper_relative = left_offset_grid_box_wrapper_relative + corr_col*pa_box_width,
+                       pa_top_edge_wrapper_relative  = top_offset_grid_box_wrapper_relative  + corr_row*pa_box_width,
+                       
+                       
                        pa_center_x_wrapper_relative = pa_left_edge_wrapper_relative + pa_width/2,
-                       pa_center_diff = round(pa_center_x - pa_center_x_wrapper_relative))
+                       pa_center_y_wrapper_relative = pa_top_edge_wrapper_relative  + pa_width/2,
+                       
+                       wrapper_left_offset = round(pa_center_x - pa_center_x_wrapper_relative),
+                       wrapper_top_offset  = round(pa_center_y - pa_center_y_wrapper_relative))
         
         # Overwrite this info in the missed trials too
-        session_results$pa_center_diff <- session_results$pa_center_diff[!is.na(session_results$pa_center_diff)][1]
+        session_results$wrapper_left_offset <- session_results$wrapper_left_offset[!is.na(session_results$wrapper_left_offset)][1]
+        session_results$wrapper_top_offset  <- session_results$wrapper_top_offset[!is.na(session_results$wrapper_top_offset)][1]
         
-        # 3. Now, recalculate the pa_center_x
+        # if (any(session_results$wrapper_left_offset < 0) | any(session_results$wrapper_top_offset < 0)){
+        #         stop('wrapper edge is negative, cut off screen?')
+        # }           
+        
+        # 3. Now, recalculate the pa_center_x and y
         session_results <- session_results %>%
-                mutate(pa_center_x_recon = pa_center_diff + pa_left_edge_wrapper_relative + pa_width/2,
-                       pa_center_error = pa_center_x_recon - pa_center_x)
+                mutate(pa_center_x_recon = wrapper_left_offset + pa_left_edge_wrapper_relative + pa_width/2,
+                       pa_center_x_error = pa_center_x_recon - pa_center_x,
+                       pa_center_y_recon = wrapper_top_offset + pa_top_edge_wrapper_relative + pa_width/2,
+                       pa_center_y_error = pa_center_y_recon - pa_center_y,                       )
         
         # 4. Make sure this error is not more than 1 pixel
-        error_max <- max(session_results$pa_center_error, na.rm = T)
+        error_x_max <- max(session_results$pa_center_x_error, na.rm = T)
+        error_y_max <- max(session_results$pa_center_y_error, na.rm = T)
         
-        if (error_max > 1){
-                error('New calculated pa_center_x isnt close enough to pre-recorded one')
-        }
+        # if (error_x_max > 1 | error_y_max > 1){
+        #         stop('New calculated pa_center isnt close enough to pre-recorded one')
+        # }
+        
+        # Remove unnecessary columns
+        session_results <- session_results %>%
+                select(-c('left_offset_grid_box_wrapper_relative',
+                          'top_offset_grid_box_wrapper_relative',
+                          'pa_left_edge_wrapper_relative',
+                          'pa_top_edge_wrapper_relative',
+                          'pa_center_x_wrapper_relative',
+                          'pa_center_y_wrapper_relative',
+                          'wrapper_left_offset',
+                          'wrapper_top_offset',
+                          'pa_center_x_error',
+                          'pa_center_y_error'))
         
         # All the mutations
         session_results <- session_results %>%
@@ -118,11 +150,11 @@ for (iName in filenames){
                        rc_dist_euclid = sqrt(
                                (corr_row-row)^2 + (corr_col-col)^2
                        ),
-                       mouse_dist_cb = abs(mouse_clientX - pa_center_x_recon) +
-                               abs(mouse_clientY - pa_center_y),
+                       mouse_dist_cb = abs(mouse_clientX - pa_center_x) +
+                                       abs(mouse_clientY - pa_center_y),
                        mouse_error = sqrt(
                                (mouse_clientX - pa_center_x_recon)^2 +
-                               (mouse_clientY - pa_center_y)^2
+                               (mouse_clientY - pa_center_y_recon)^2
                                ),
                        correct_exact = coalesce(correct,0L),
                        correct_one_square_away = case_when(
