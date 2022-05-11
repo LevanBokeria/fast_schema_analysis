@@ -354,6 +354,7 @@ last_two_reps_stats <-
         filter(new_pa_img_row_number_across_sessions %in% c(7,8)) %>%
         group_by(ptp_trunk,
                  condition,
+                 border_dist,
                  new_pa_status,
                  accuracy_type) %>%
         summarise(last_two_mean = mean(correct_mean),
@@ -365,6 +366,7 @@ last_four_reps_stats <-
         filter(new_pa_img_row_number_across_sessions %in% c(5,6,7,8)) %>%
         group_by(ptp_trunk,
                  condition,
+                 border_dist,
                  new_pa_status,
                  accuracy_type) %>%
         summarise(last_four_mean = mean(correct_mean),
@@ -383,8 +385,8 @@ sum_stats_each_participant <- merge(last_two_reps_stats,
 sum_stats_each_participant <- sum_stats_each_participant %>%
         mutate(log_last_two_mean = log(last_two_mean),
                log_last_four_mean = log(last_four_mean))
-# If any of them are Inf values, substitute with the lowest value.
 
+# If any of them are Inf values, substitute with the lowest value.
 sum_stats_each_participant <- sum_stats_each_participant %>%
         mutate(log_last_two_mean = case_when(
                 is.infinite(log_last_two_mean) ~ min(log_last_two_mean*is.finite(log_last_two_mean),na.rm = T),
@@ -400,31 +402,6 @@ sum_stats_each_participant <- merge(sum_stats_each_participant,
                                            'new_pa_status',
                                            'accuracy_type'),
                                     all = TRUE)
-
-## For each border distance -----------------------------------------------
-last_four_reps_by_border_dist_stats <-
-        mean_by_border_dist_rep_long %>%
-        filter(new_pa_img_row_number_across_sessions %in% c(5,6,7,8)) %>% 
-        group_by(ptp_trunk,
-                 condition,
-                 border_dist,
-                 accuracy_type) %>%
-        summarise(last_four_mean = mean(correct_mean, na.rm = T),
-                  last_four_sd   = sd(correct_mean, na.rm = T),
-                  n = n()) %>%
-        ungroup()
-
-# Across every 8 repetitions, so we can plot learning for each border dist
-sum_stats_by_border_distance <-
-        mean_by_border_dist_rep_long %>%
-        group_by(ptp_trunk,
-                 condition,
-                 border_dist,
-                 new_pa_img_row_number_across_sessions,
-                 accuracy_type) %>%
-        summarise(correct_mean = mean(correct_mean, na.rm = T),
-                  correct_sd   = sd(correct_mean, na.rm = T)) %>%
-        ungroup()
 
 # Now, matlab computed learning rates ############################
 
