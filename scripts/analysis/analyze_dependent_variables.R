@@ -159,7 +159,8 @@ mean_by_rep_long_bord_dist_3_4 <-
 # Calculate mean for far_pa vs non far_pa
 mean_by_landmark_rep_long_bord_dist_3_4 <-
         session_results_all_ptp_long_accuracy %>%
-        filter(!condition %in% c('random_locations','no_schema')) %>%
+        filter(!condition %in% c('random_locations','no_schema'),
+               border_dist %in% c(3,4)) %>%
         droplevels() %>%
         group_by(ptp_trunk,
                  condition,
@@ -260,108 +261,97 @@ mean_by_rep_all_types_long <-
 #       upper = c(i_upper,c_upper)
 # )
 
-learning_and_intercept_each_participant <-
-        mean_by_rep_all_types_long %>%
-        filter(border_dist %in% c('all','3_4')) %>%
-        droplevels() %>%
-        group_by(ptp_trunk,
-                 condition,
-                 border_dist,
-                 new_pa_status,
-                 accuracy_type) %>%
-        do(as.data.frame(
-                optim(c(i_start,c_start),
-                      fit_learning_and_intercept,
-                      gr = NULL,
-                      seq(1,8),
-                      .$correct_mean,
-                      'sse',
-                      .$accuracy_type,
-                      FALSE,
-                      method = 'L-BFGS-B',
-                      lower = c(i_lower,c_lower),
-                      upper = c(i_upper,c_upper)
-                )) %>%
-                   mutate(id = row_number()) %>%
-                   pivot_wider(names_from = id,
-                               values_from = par,
-                               names_prefix = 'par_')) %>%
-        rename(sse = value,
-               n_iterations = counts,
-               i = par_1,
-               c = par_2) %>%
-        ungroup()
-
-# Perform log transformation of the learning rate
-# learning_and_intercept_each_participant <- 
-#         learning_and_intercept_each_participant %>%
-#         mutate(c_log = log(c))
-# # This will result in Inf for those c==0. Do empirical log-odds?
-# print('CHANGE HOW SMALLEST LOG C GETS SUBSTITUTED')
-# smallest_c_log <- learning_and_intercept_each_participant$c_log[!is.infinite(learning_and_intercept_each_participant$c_log)] %>% min()
 # learning_and_intercept_each_participant <-
+#         mean_by_rep_all_types_long %>%
+#         filter(border_dist %in% c('all','3_4'),
+#                accuracy_type == 'mouse_error') %>% 
+#         droplevels() %>%
+#         group_by(ptp_trunk,
+#                  condition,
+#                  border_dist,
+#                  new_pa_status,
+#                  accuracy_type) %>%
+#         do(as.data.frame(
+#                 optim(c(i_start,c_start),
+#                       fit_learning_and_intercept,
+#                       gr = NULL,
+#                       seq(1,8),
+#                       .$correct_mean,
+#                       'sse',
+#                       .$accuracy_type,
+#                       FALSE,
+#                       method = 'L-BFGS-B',
+#                       lower = c(i_lower,c_lower),
+#                       upper = c(i_upper,c_upper)
+#                 )) %>%
+#                    mutate(id = row_number()) %>%
+#                    pivot_wider(names_from = id,
+#                                values_from = par,
+#                                names_prefix = 'par_')) %>%
+#         rename(sse = value,
+#                n_iterations = counts,
+#                i = par_1,
+#                c = par_2) %>%
+#         ungroup()
+# 
+# # Perform log transformation of the learning rate
+# # learning_and_intercept_each_participant <- 
+# #         learning_and_intercept_each_participant %>%
+# #         mutate(c_log = log(c))
+# # # This will result in Inf for those c==0. Do empirical log-odds?
+# # print('CHANGE HOW SMALLEST LOG C GETS SUBSTITUTED')
+# # smallest_c_log <- learning_and_intercept_each_participant$c_log[!is.infinite(learning_and_intercept_each_participant$c_log)] %>% min()
+# # learning_and_intercept_each_participant <-
+# #         learning_and_intercept_each_participant %>%
+# #         mutate(c_log = case_when(
+# #                 is.infinite(c_log) ~ smallest_c_log,
+# #                 TRUE ~ c_log
+# #         ))
+# 
+# ## Add the predicted data to the dataframe ------------------------------
+# 
+# # All data
+# learning_and_intercept_each_participants_y_hat <-
 #         learning_and_intercept_each_participant %>%
-#         mutate(c_log = case_when(
-#                 is.infinite(c_log) ~ smallest_c_log,
-#                 TRUE ~ c_log
-#         ))
-
-## Add the predicted data to the dataframe ------------------------------
-
-# All data
-learning_and_intercept_each_participants_y_hat <-
-        learning_and_intercept_each_participant %>%
-        group_by(ptp_trunk,
-                 condition,
-                 border_dist,
-                 new_pa_status,
-                 accuracy_type) %>% 
-        rowwise() %>%
-        mutate(y_hat_i_c = list(fit_learning_and_intercept(c(i,c),
-                                                           seq(1:8),
-                                                           seq(1:8),
-                                                           'fit',
-                                                           accuracy_type,
-                                                           FALSE)),
-               new_pa_img_row_number_across_sessions = list(seq(1:8))) %>% 
-        unnest(c(y_hat_i_c,
-                 new_pa_img_row_number_across_sessions)) %>% 
-        select(c(ptp_trunk,
-                 condition,
-                 border_dist,
-                 new_pa_status,
-                 accuracy_type,
-                 y_hat_i_c,
-                 new_pa_img_row_number_across_sessions)) %>%
-        ungroup()
-
-mean_by_rep_all_types_long <- merge(mean_by_rep_all_types_long,
-                                    learning_and_intercept_each_participants_y_hat,
-                                    by = c('ptp_trunk',
-                                           'condition',
-                                           'border_dist',
-                                           'new_pa_status',
-                                           'accuracy_type',
-                                           'new_pa_img_row_number_across_sessions'),
-                                    all = TRUE)
+#         group_by(ptp_trunk,
+#                  condition,
+#                  border_dist,
+#                  new_pa_status,
+#                  accuracy_type) %>% 
+#         rowwise() %>%
+#         mutate(y_hat_i_c = list(fit_learning_and_intercept(c(i,c),
+#                                                            seq(1:8),
+#                                                            seq(1:8),
+#                                                            'fit',
+#                                                            accuracy_type,
+#                                                            FALSE)),
+#                new_pa_img_row_number_across_sessions = list(seq(1:8))) %>% 
+#         unnest(c(y_hat_i_c,
+#                  new_pa_img_row_number_across_sessions)) %>% 
+#         select(c(ptp_trunk,
+#                  condition,
+#                  border_dist,
+#                  new_pa_status,
+#                  accuracy_type,
+#                  y_hat_i_c,
+#                  new_pa_img_row_number_across_sessions)) %>%
+#         ungroup()
+# 
+# mean_by_rep_all_types_long <- merge(mean_by_rep_all_types_long,
+#                                     learning_and_intercept_each_participants_y_hat,
+#                                     by = c('ptp_trunk',
+#                                            'condition',
+#                                            'border_dist',
+#                                            'new_pa_status',
+#                                            'accuracy_type',
+#                                            'new_pa_img_row_number_across_sessions'),
+#                                     all = TRUE)
 
 # Rough measures for learning #########################################
 
 ## For both/near/far-PA -----------------------------------------------
 
-last_two_reps_stats <-
-        mean_by_rep_all_types_long %>%
-        filter(new_pa_img_row_number_across_sessions %in% c(7,8)) %>%
-        group_by(ptp_trunk,
-                 condition,
-                 border_dist,
-                 new_pa_status,
-                 accuracy_type) %>%
-        summarise(last_two_mean = mean(correct_mean),
-                  last_two_sd   = sd(correct_mean)) %>%
-        ungroup()
-
-last_four_reps_stats <-
+sum_stats_each_participant <-
         mean_by_rep_all_types_long %>%
         filter(new_pa_img_row_number_across_sessions %in% c(5,6,7,8)) %>%
         group_by(ptp_trunk,
@@ -369,41 +359,37 @@ last_four_reps_stats <-
                  border_dist,
                  new_pa_status,
                  accuracy_type) %>%
-        summarise(last_four_mean = mean(correct_mean),
-                  last_four_sd   = sd(correct_mean)) %>%
+        summarise(last_four_mean = mean(correct_mean, na.rm = T),
+                  last_four_sd   = sd(correct_mean, na.rm = T)) %>%
         ungroup()
 
-# Create one variable, that will have all the dependent variables
-sum_stats_each_participant <- merge(last_two_reps_stats,
-                                    last_four_reps_stats,
-                                    by = c('ptp_trunk',
-                                           'condition',
-                                           'border_dist',
-                                           'new_pa_status',
-                                           'accuracy_type'))
+# sum_stats_each_participant %>% filter(border_dist %in% c('all','3_4')) %>% 
+#         pivot_wider(id_cols = c(ptp_trunk,
+#                                 condition,
+#                                 new_pa_status,
+#                                 accuracy_type),
+#                     names_from = border_dist,
+#                     values_from = last_four_mean) %>% View()
+
 
 # Log transform the last 2 and last 4 measures
 sum_stats_each_participant <- sum_stats_each_participant %>%
-        mutate(log_last_two_mean = log(last_two_mean),
-               log_last_four_mean = log(last_four_mean))
+        mutate(log_last_four_mean = log(last_four_mean))
 
 # If any of them are Inf values, substitute with the lowest value.
 sum_stats_each_participant <- sum_stats_each_participant %>%
-        mutate(log_last_two_mean = case_when(
-                is.infinite(log_last_two_mean) ~ min(log_last_two_mean*is.finite(log_last_two_mean),na.rm = T),
-                TRUE ~ log_last_two_mean),
-               log_last_four_mean = case_when(
+        mutate(log_last_four_mean = case_when(
                        is.infinite(log_last_four_mean) ~ min(log_last_four_mean*is.finite(log_last_four_mean),na.rm = T),
                        TRUE ~ log_last_four_mean))
 
-sum_stats_each_participant <- merge(sum_stats_each_participant,
-                                    learning_and_intercept_each_participant,
-                                    by = c('ptp_trunk',
-                                           'condition',
-                                           'border_dist',
-                                           'new_pa_status',
-                                           'accuracy_type'),
-                                    all = TRUE)
+# sum_stats_each_participant <- merge(sum_stats_each_participant,
+#                                     learning_and_intercept_each_participant,
+#                                     by = c('ptp_trunk',
+#                                            'condition',
+#                                            'border_dist',
+#                                            'new_pa_status',
+#                                            'accuracy_type'),
+#                                     all = TRUE)
 
 # Now, matlab computed learning rates ############################
 
@@ -419,8 +405,7 @@ sum_stats_each_participant <- merge(sum_stats_each_participant,
                                     all.x = T) 
 
 sum_stats_each_participant <- sum_stats_each_participant %>%
-        rename(sse = sse.x,
-               sse_ml = sse.y,
+        rename(sse_ml = sse,
                i_ml = intercept,
                c_ml = learning_rate)
 

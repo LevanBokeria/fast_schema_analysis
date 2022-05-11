@@ -86,14 +86,6 @@ session_results_all_ptp_long_accuracy %>%
 
 ```
 
-
-## Average mouse error by session?
-
-```{r mouse-error-by-session}
-
-```
-
-
 ## Raw learning curves + learning fits
 
 ```{r raw-learning-curves-and-fits, fig.width=13, fig.height=12}
@@ -101,7 +93,8 @@ session_results_all_ptp_long_accuracy %>%
 # Plot the fits
 fig_each_ptp <- mean_by_rep_all_types_long %>%
         filter(accuracy_type %in% c('correct_exact'),
-               new_pa_status == 'both') %>%
+               new_pa_status == 'both',
+               border_dist == 'all') %>%
         droplevels() %>%        
         ggplot(aes(x=new_pa_img_row_number_across_sessions,
                    y=correct_mean)) +
@@ -110,7 +103,7 @@ fig_each_ptp <- mean_by_rep_all_types_long %>%
 
         # Add the y_hat learning and intercept
         geom_line(aes(x=new_pa_img_row_number_across_sessions,
-                      y=y_hat_i_c),
+                      y=y_hat_i_c_ml),
                   size=1,
                   color='blue',
                   linetype = 'longdash') +
@@ -121,23 +114,24 @@ fig_each_ptp <- mean_by_rep_all_types_long %>%
         ylab('Correct Exact') +
         scale_x_continuous(breaks=c(1,2,3,4,5,6,7,8)) +
         # theme(legend.position = 'top') +
-        geom_vline(xintercept = 4.5, linetype = 'dashed') +
-        geom_text(data=filter(
-                learning_and_intercept_each_participant,
-                accuracy_type %in% c('correct_exact'),
-                new_pa_status == 'both'
-                ),
-                aes(x=4,
-                    y=0.65,
-                    label = paste('conv=',
-                                  as.character(convergence),
-                                  ' ',
-                                  'i=',
-                                  as.character(round(i,2)),
-                                  ' ',
-                                  'c=',
-                                  as.character(round(c,2)),
-                                  seq='')))
+        geom_vline(xintercept = 4.5, linetype = 'dashed')
+        # geom_text(data=filter(
+        #         learning_and_intercept_each_participant,
+        #         accuracy_type %in% c('correct_exact'),
+        #         new_pa_status == 'both',
+        #         border_dist == 'all'
+        #         ),
+        #         aes(x=4,
+        #             y=0.65,
+        #             label = paste('conv=',
+        #                           as.character(convergence),
+        #                           ' ',
+        #                           'i=',
+        #                           as.character(round(i,2)),
+        #                           ' ',
+        #                           'c=',
+        #                           as.character(round(c,2)),
+        #                           seq='')))
         # geom_text(data=learning_only_each_participant,
         #           aes(x=7,y=0.05, label = paste('c=',as.character(round(c,2)),seq='')))        
         # annotate('text',x=1.5,y = 0.85, label = learning_and_asymptote_each_participant$a ,size=3)
@@ -150,7 +144,8 @@ print(fig_each_ptp)
 # Plot the fits
 fig_each_ptp <- mean_by_rep_all_types_long %>%
         filter(accuracy_type %in% c('correct_one_square_away'),
-               new_pa_status == 'both') %>%
+               new_pa_status == 'both',
+               border_dist == 'all') %>%
         droplevels() %>%        
         ggplot(aes(x=new_pa_img_row_number_across_sessions,
                    y=correct_mean)) +
@@ -159,7 +154,7 @@ fig_each_ptp <- mean_by_rep_all_types_long %>%
 
         # Add the y_hat learning and intercept
         geom_line(aes(x=new_pa_img_row_number_across_sessions,
-                      y=y_hat_i_c),
+                      y=y_hat_i_c_ml),
                   size=1,
                   color='red',
                   linetype = 'longdash') +
@@ -170,23 +165,24 @@ fig_each_ptp <- mean_by_rep_all_types_long %>%
         ylab('Correct One Square Away') +
         scale_x_continuous(breaks=c(1,2,3,4,5,6,7,8)) +
         # theme(legend.position = 'top') +
-        geom_vline(xintercept = 4.5, linetype = 'dashed') +
-        geom_text(data=filter(
-                learning_and_intercept_each_participant,
-                accuracy_type %in% c('correct_one_square_away'),
-                new_pa_status == 'both'
-                ),
-                aes(x=5.5,
-                    y=0.15,
-                    label = paste('conv=',
-                                  as.character(convergence),
-                                  ' ',
-                                  'i=',
-                                  as.character(round(i,2)),
-                                  ' ',
-                                  'c=',
-                                  as.character(round(c,2)),
-                                  seq='')))
+        geom_vline(xintercept = 4.5, linetype = 'dashed') 
+        # geom_text(data=filter(
+        #         learning_and_intercept_each_participant,
+        #         accuracy_type %in% c('correct_one_square_away'),
+        #         new_pa_status == 'both',
+        #         border_dist == 'all'
+        #         ),
+        #         aes(x=5.5,
+        #             y=0.15,
+        #             label = paste('conv=',
+        #                           as.character(convergence),
+        #                           ' ',
+        #                           'i=',
+        #                           as.character(round(i,2)),
+        #                           ' ',
+        #                           'c=',
+        #                           as.character(round(c,2)),
+        #                           seq='')))
         # geom_text(data=learning_only_each_participant,
         #           aes(x=7,y=0.05, label = paste('c=',as.character(round(c,2)),seq='')))        
         # annotate('text',x=1.5,y = 0.85, label = learning_and_asymptote_each_participant$a ,size=3)
@@ -199,7 +195,8 @@ print(fig_each_ptp)
 # Plot the fits
 fig_each_ptp <- mean_by_rep_all_types_long %>%
         filter(accuracy_type %in% c('mouse_error'),
-               new_pa_status == 'both') %>%
+               new_pa_status == 'both',
+               border_dist == 'all') %>%
         droplevels() %>%        
         ggplot(aes(x=new_pa_img_row_number_across_sessions,
                    y=correct_mean)) +
@@ -208,7 +205,7 @@ fig_each_ptp <- mean_by_rep_all_types_long %>%
 
         # Add the y_hat learning and intercept
         geom_line(aes(x=new_pa_img_row_number_across_sessions,
-                      y=y_hat_i_c),
+                      y=y_hat_i_c_ml),
                   size=1,
                   color='orange',
                   linetype = 'longdash') +
@@ -219,23 +216,24 @@ fig_each_ptp <- mean_by_rep_all_types_long %>%
         ylab('Mouse euclidean distance ') +
         scale_x_continuous(breaks=c(1,2,3,4,5,6,7,8)) +
         # theme(legend.position = 'top') +
-        geom_vline(xintercept = 4.5, linetype = 'dashed') +
-        geom_text(data=filter(
-                learning_and_intercept_each_participant,
-                accuracy_type %in% c('mouse_error'),
-                new_pa_status == 'both'
-                ),
-                aes(x=4.5,
-                    y=200.15,
-                    label = paste('conv=',
-                                  as.character(convergence),
-                                  ' ',
-                                  'i=',
-                                  as.character(round(i,2)),
-                                  ' ',
-                                  'c=',
-                                  as.character(round(c,2)),
-                                  seq='')))
+        geom_vline(xintercept = 4.5, linetype = 'dashed') 
+        # geom_text(data=filter(
+        #         learning_and_intercept_each_participant,
+        #         accuracy_type %in% c('mouse_error'),
+        #         new_pa_status == 'both',
+        #         border_dist == 'all'
+        #         ),
+        #         aes(x=4.5,
+        #             y=200.15,
+        #             label = paste('conv=',
+        #                           as.character(convergence),
+        #                           ' ',
+        #                           'i=',
+        #                           as.character(round(i,2)),
+        #                           ' ',
+        #                           'c=',
+        #                           as.character(round(c,2)),
+                                  # seq='')))
         # geom_text(data=learning_only_each_participant,
         #           aes(x=7,y=0.05, label = paste('c=',as.character(round(c,2)),seq='')))        
         # annotate('text',x=1.5,y = 0.85, label = learning_and_asymptote_each_participant$a ,size=3)
@@ -250,7 +248,8 @@ print(fig_each_ptp)
 # Plot the fits
 fig_each_ptp <- mean_by_rep_all_types_long %>%
         filter(accuracy_type %in% c('mouse_error'),
-               new_pa_status == 'both') %>%
+               new_pa_status == 'both',
+               border_dist == 'all') %>%
         droplevels() %>%                
         group_by(condition,
                  new_pa_img_row_number_across_sessions) %>%
@@ -278,62 +277,62 @@ print(fig_each_ptp)
 
 ```{r learning-curves-across-part-ech-border-dist, fig.width=13, fig.height=4}
 
-# Plot the fits
-fig_each_ptp <- sum_stats_by_border_distance %>%
-        filter(accuracy_type %in% c('mouse_error')) %>%
-        droplevels() %>%       
-        group_by(condition,
-                 border_dist,
-                 new_pa_img_row_number_across_sessions) %>%
-        summarise(n = n(),
-                  correct_mean_across_ptp = mean(correct_mean,na.rm = T)) %>% 
-        ungroup() %>%
-        ggplot(aes(x=new_pa_img_row_number_across_sessions,
-                   y=correct_mean_across_ptp,
-                   group=border_dist,
-                   color=border_dist)) +
-        geom_point() +
-        geom_line() +
-
-        facet_grid(~condition) +
-        ggtitle(paste('Mouse euclidean distance; Across participants; By border distance',sep='')) +
-        xlab('Image repetition') +
-        ylab('Mouse euclidean distance ') +
-        scale_x_continuous(breaks=c(1,2,3,4,5,6,7,8)) +
-        # theme(legend.position = 'top') +
-        geom_vline(xintercept = 4.5, linetype = 'dashed') 
-
-
-print(fig_each_ptp)
-
-# Plot the fits
-fig_each_ptp <- sum_stats_by_border_distance %>%
-        filter(accuracy_type %in% c('correct_exact','correct_one_square_away')) %>%
-        droplevels() %>%       
-        group_by(condition,
-                 border_dist,
-                 new_pa_img_row_number_across_sessions,
-                 accuracy_type) %>%
-        summarise(n = n(),
-                  correct_mean_across_ptp = mean(correct_mean,na.rm = T)) %>% 
-        ungroup() %>%
-        ggplot(aes(x=new_pa_img_row_number_across_sessions,
-                   y=correct_mean_across_ptp,
-                   group=border_dist,
-                   color=border_dist)) +
-        geom_point() +
-        geom_line() +
-
-        facet_grid(accuracy_type~condition) +
-        ggtitle(paste('Accuracy data; Across participants; By border distance',sep='')) +
-        xlab('Image repetition') +
-        ylab('Accuracy ') +
-        scale_x_continuous(breaks=c(1,2,3,4,5,6,7,8)) +
-        # theme(legend.position = 'top') +
-        geom_vline(xintercept = 4.5, linetype = 'dashed') 
-
-
-print(fig_each_ptp)
+# # Plot the fits
+# fig_each_ptp <- sum_stats_by_border_distance %>%
+#         filter(accuracy_type %in% c('mouse_error')) %>%
+#         droplevels() %>%       
+#         group_by(condition,
+#                  border_dist,
+#                  new_pa_img_row_number_across_sessions) %>%
+#         summarise(n = n(),
+#                   correct_mean_across_ptp = mean(correct_mean,na.rm = T)) %>% 
+#         ungroup() %>%
+#         ggplot(aes(x=new_pa_img_row_number_across_sessions,
+#                    y=correct_mean_across_ptp,
+#                    group=border_dist,
+#                    color=border_dist)) +
+#         geom_point() +
+#         geom_line() +
+# 
+#         facet_grid(~condition) +
+#         ggtitle(paste('Mouse euclidean distance; Across participants; By border distance',sep='')) +
+#         xlab('Image repetition') +
+#         ylab('Mouse euclidean distance ') +
+#         scale_x_continuous(breaks=c(1,2,3,4,5,6,7,8)) +
+#         # theme(legend.position = 'top') +
+#         geom_vline(xintercept = 4.5, linetype = 'dashed') 
+# 
+# 
+# print(fig_each_ptp)
+# 
+# # Plot the fits
+# fig_each_ptp <- sum_stats_by_border_distance %>%
+#         filter(accuracy_type %in% c('correct_exact','correct_one_square_away')) %>%
+#         droplevels() %>%       
+#         group_by(condition,
+#                  border_dist,
+#                  new_pa_img_row_number_across_sessions,
+#                  accuracy_type) %>%
+#         summarise(n = n(),
+#                   correct_mean_across_ptp = mean(correct_mean,na.rm = T)) %>% 
+#         ungroup() %>%
+#         ggplot(aes(x=new_pa_img_row_number_across_sessions,
+#                    y=correct_mean_across_ptp,
+#                    group=border_dist,
+#                    color=border_dist)) +
+#         geom_point() +
+#         geom_line() +
+# 
+#         facet_grid(accuracy_type~condition) +
+#         ggtitle(paste('Accuracy data; Across participants; By border distance',sep='')) +
+#         xlab('Image repetition') +
+#         ylab('Accuracy ') +
+#         scale_x_continuous(breaks=c(1,2,3,4,5,6,7,8)) +
+#         # theme(legend.position = 'top') +
+#         geom_vline(xintercept = 4.5, linetype = 'dashed') 
+# 
+# 
+# print(fig_each_ptp)
 
 
 ```
@@ -343,116 +342,117 @@ print(fig_each_ptp)
 
 ```{r landmark-raw-learning-curves-and-fits, fig.width=10, fig.height=12}
 
-# Plot the fits
-fig_each_ptp_lm <- mean_by_rep_all_types_long %>%
-        filter(accuracy_type %in% c('correct_exact'),
-               new_pa_status %in% c('near_pa','far_pa'),
-               !condition %in% c('random_locations','no_schema')) %>%
-        droplevels() %>%        
-        ggplot(aes(x=new_pa_img_row_number_across_sessions,
-                   y=correct_mean,
-                   group=new_pa_status,
-                   color=new_pa_status)) +
-        geom_point() +
-        geom_line(size=1) +
+# # Plot the fits
+# fig_each_ptp_lm <- mean_by_rep_all_types_long %>%
+#         filter(accuracy_type %in% c('correct_exact'),
+#                new_pa_status %in% c('near_pa','far_pa'),
+#                !condition %in% c('random_locations','no_schema')) %>%
+#         droplevels() %>%        
+#         ggplot(aes(x=new_pa_img_row_number_across_sessions,
+#                    y=correct_mean,
+#                    group=new_pa_status,
+#                    color=new_pa_status)) +
+#         geom_point() +
+#         geom_line(size=1) +
+# # 
+#         # Add the y_hat learning and intercept
+#         geom_line(aes(x=new_pa_img_row_number_across_sessions,
+#                       y=y_hat_i_c_ml),
+#                   size=1,
+#                   # color='blue',
+#                   linetype = 'longdash') +
 # 
-        # Add the y_hat learning and intercept
-        geom_line(aes(x=new_pa_img_row_number_across_sessions,
-                      y=y_hat_i_c),
-                  size=1,
-                  # color='blue',
-                  linetype = 'longdash') +
-
-        facet_grid(ptp_trunk~condition) +
-        ggtitle(paste('Exact correct: real and estimate data',sep='')) +
-        xlab('Image repetition') +
-        ylab('Correct Exact') +
-        scale_x_continuous(breaks=c(1,2,3,4,5,6,7,8)) +
-        # theme(legend.position = 'top') +
-        geom_vline(xintercept = 4.5, linetype = 'dashed') +
-        geom_text(data=filter(
-                learning_and_intercept_each_participant,
-                accuracy_type %in% c('correct_exact'),
-                new_pa_status %in% c('near_pa','far_pa'),
-                !condition %in% c('random_locations','no_schema')
-                ),
-                aes(x=3.5,
-                    y=0.65,
-                    label = paste('conv=',
-                                  as.character(convergence),
-                                  ' ',
-                                  'i=',
-                                  as.character(round(i,2)),
-                                  ' ',
-                                  'c=',
-                                  as.character(round(c,2)),
-                                  seq='')),
-                position=ggstance::position_dodgev(height=0.3))
-        # geom_text(data=learning_only_each_participant,
-        #           aes(x=7,y=0.05, label = paste('c=',as.character(round(c,2)),seq='')))        
-        # annotate('text',x=1.5,y = 0.85, label = learning_and_asymptote_each_participant$a ,size=3)
-
-
-print(fig_each_ptp_lm)
-
-# Plot the fits
-fig_each_ptp_lm <- mean_by_rep_all_types_long %>%
-        filter(accuracy_type %in% c('correct_one_square_away'),
-               new_pa_status %in% c('near_pa','far_pa'),
-               !condition %in% c('random_locations','no_schema')) %>%
-        droplevels() %>%        
-        ggplot(aes(x=new_pa_img_row_number_across_sessions,
-                   y=correct_mean,
-                   group=new_pa_status,
-                   color=new_pa_status)) +
-        geom_point() +
-        geom_line(size=1) +
+#         facet_grid(ptp_trunk~condition) +
+#         ggtitle(paste('Exact correct: real and estimate data',sep='')) +
+#         xlab('Image repetition') +
+#         ylab('Correct Exact') +
+#         scale_x_continuous(breaks=c(1,2,3,4,5,6,7,8)) +
+#         # theme(legend.position = 'top') +
+#         geom_vline(xintercept = 4.5, linetype = 'dashed') +
+#         geom_text(data=filter(
+#                 learning_and_intercept_each_participant,
+#                 accuracy_type %in% c('correct_exact'),
+#                 new_pa_status %in% c('near_pa','far_pa'),
+#                 !condition %in% c('random_locations','no_schema')
+#                 ),
+#                 aes(x=3.5,
+#                     y=0.65,
+#                     label = paste('conv=',
+#                                   as.character(convergence),
+#                                   ' ',
+#                                   'i=',
+#                                   as.character(round(i,2)),
+#                                   ' ',
+#                                   'c=',
+#                                   as.character(round(c,2)),
+#                                   seq='')),
+#                 position=ggstance::position_dodgev(height=0.3))
+#         # geom_text(data=learning_only_each_participant,
+#         #           aes(x=7,y=0.05, label = paste('c=',as.character(round(c,2)),seq='')))        
+#         # annotate('text',x=1.5,y = 0.85, label = learning_and_asymptote_each_participant$a ,size=3)
 # 
-        # Add the y_hat learning and intercept
-        geom_line(aes(x=new_pa_img_row_number_across_sessions,
-                      y=y_hat_i_c),
-                  size=1,
-                  # color='blue',
-                  linetype = 'longdash') +
-
-        facet_grid(ptp_trunk~condition) +
-        ggtitle(paste('correct_one_square_away: real and estimate data',sep='')) +
-        xlab('Image repetition') +
-        ylab('correct_one_square_away') +
-        scale_x_continuous(breaks=c(1,2,3,4,5,6,7,8)) +
-        # theme(legend.position = 'top') +
-        geom_vline(xintercept = 4.5, linetype = 'dashed') +
-        geom_text(data=filter(
-                learning_and_intercept_each_participant,
-                accuracy_type %in% c('correct_one_square_away'),
-                new_pa_status %in% c('near_pa','far_pa'),
-                !condition %in% c('random_locations','no_schema')
-                ),
-                aes(x=3.5,
-                    y=0.65,
-                    label = paste('conv=',
-                                  as.character(convergence),
-                                  ' ',
-                                  'i=',
-                                  as.character(round(i,2)),
-                                  ' ',
-                                  'c=',
-                                  as.character(round(c,2)),
-                                  seq='')),
-                position=ggstance::position_dodgev(height=0.3))
-        # geom_text(data=learning_only_each_participant,
-        #           aes(x=7,y=0.05, label = paste('c=',as.character(round(c,2)),seq='')))        
-        # annotate('text',x=1.5,y = 0.85, label = learning_and_asymptote_each_participant$a ,size=3)
-
-
-print(fig_each_ptp_lm)
+# 
+# print(fig_each_ptp_lm)
+# 
+# # Plot the fits
+# fig_each_ptp_lm <- mean_by_rep_all_types_long %>%
+#         filter(accuracy_type %in% c('correct_one_square_away'),
+#                new_pa_status %in% c('near_pa','far_pa'),
+#                !condition %in% c('random_locations','no_schema')) %>%
+#         droplevels() %>%        
+#         ggplot(aes(x=new_pa_img_row_number_across_sessions,
+#                    y=correct_mean,
+#                    group=new_pa_status,
+#                    color=new_pa_status)) +
+#         geom_point() +
+#         geom_line(size=1) +
+# # 
+#         # Add the y_hat learning and intercept
+#         geom_line(aes(x=new_pa_img_row_number_across_sessions,
+#                       y=y_hat_i_c_ml),
+#                   size=1,
+#                   # color='blue',
+#                   linetype = 'longdash') +
+# 
+#         facet_grid(ptp_trunk~condition) +
+#         ggtitle(paste('correct_one_square_away: real and estimate data',sep='')) +
+#         xlab('Image repetition') +
+#         ylab('correct_one_square_away') +
+#         scale_x_continuous(breaks=c(1,2,3,4,5,6,7,8)) +
+#         # theme(legend.position = 'top') +
+#         geom_vline(xintercept = 4.5, linetype = 'dashed') +
+#         geom_text(data=filter(
+#                 learning_and_intercept_each_participant,
+#                 accuracy_type %in% c('correct_one_square_away'),
+#                 new_pa_status %in% c('near_pa','far_pa'),
+#                 !condition %in% c('random_locations','no_schema')
+#                 ),
+#                 aes(x=3.5,
+#                     y=0.65,
+#                     label = paste('conv=',
+#                                   as.character(convergence),
+#                                   ' ',
+#                                   'i=',
+#                                   as.character(round(i,2)),
+#                                   ' ',
+#                                   'c=',
+#                                   as.character(round(c,2)),
+#                                   seq='')),
+#                 position=ggstance::position_dodgev(height=0.3))
+#         # geom_text(data=learning_only_each_participant,
+#         #           aes(x=7,y=0.05, label = paste('c=',as.character(round(c,2)),seq='')))        
+#         # annotate('text',x=1.5,y = 0.85, label = learning_and_asymptote_each_participant$a ,size=3)
+# 
+# 
+# print(fig_each_ptp_lm)
 
 # For mouse euclidean distance
 
 fig_each_ptp_lm <- mean_by_rep_all_types_long %>%
         filter(accuracy_type %in% c('mouse_error'),
                new_pa_status %in% c('near_pa','far_pa'),
-               !condition %in% c('random_locations','no_schema')) %>%
+               !condition %in% c('random_locations','no_schema'),
+               border_dist == 'all') %>%
         droplevels() %>%        
         ggplot(aes(x=new_pa_img_row_number_across_sessions,
                    y=correct_mean,
@@ -460,13 +460,13 @@ fig_each_ptp_lm <- mean_by_rep_all_types_long %>%
                    color=new_pa_status)) +
         geom_point() +
         geom_line(size=1) +
-# 
+
         # Add the y_hat learning and intercept
-        # geom_line(aes(x=new_pa_img_row_number_across_sessions,
-        #               y=y_hat_i_c),
-        #           size=1,
-        #           # color='blue',
-        #           linetype = 'longdash') +
+        geom_line(aes(x=new_pa_img_row_number_across_sessions,
+                      y=y_hat_i_c_ml),
+                  size=1,
+                  # color='blue',
+                  linetype = 'longdash') +
 
         facet_grid(ptp_trunk~condition) +
         ggtitle(paste('Mouse euclidean distance',sep='')) +
@@ -474,28 +474,48 @@ fig_each_ptp_lm <- mean_by_rep_all_types_long %>%
         ylab('Mouse euclidean distance') +
         scale_x_continuous(breaks=c(1,2,3,4,5,6,7,8)) +
         # theme(legend.position = 'top') +
-        geom_vline(xintercept = 4.5, linetype = 'dashed') 
-        # geom_text(data=filter(
-        #         learning_and_intercept_each_participant,
-        #         accuracy_type %in% c('correct_one_square_away'),
-        #         new_pa_status %in% c('near_pa','far_pa'),
-        #         !condition %in% c('random_locations','no_schema')
-        #         ),
-        #         aes(x=3.5,
-        #             y=0.65,
-        #             label = paste('conv=',
-        #                           as.character(convergence),
-        #                           ' ',
-        #                           'i=',
-        #                           as.character(round(i,2)),
-        #                           ' ',
-        #                           'c=',
-        #                           as.character(round(c,2)),
-        #                           seq='')),
-        #         position=ggstance::position_dodgev(height=0.3))
-        # geom_text(data=learning_only_each_participant,
-        #           aes(x=7,y=0.05, label = paste('c=',as.character(round(c,2)),seq='')))        
-        # annotate('text',x=1.5,y = 0.85, label = learning_and_asymptote_each_participant$a ,size=3)
+        geom_vline(xintercept = 4.5, linetype = 'dashed')
+
+
+print(fig_each_ptp_lm)
+
+# For mouse euclidean distance but border distance 3_4
+
+fig_each_ptp_lm <- mean_by_rep_all_types_long %>%
+        filter(accuracy_type %in% c('mouse_error'),
+               new_pa_status %in% c('near_pa','far_pa'),
+               !condition %in% c('random_locations','no_schema'),
+               border_dist == '3_4') %>%
+        droplevels() %>%
+        
+        # group_by(ptp_trunk,
+        #          condition,
+        #          new_pa_status,
+        #          new_pa_img_row_number_across_sessions,
+        #          .drop = F) %>%
+        # summarise(n = n()) %>% View()
+        
+        ggplot(aes(x=new_pa_img_row_number_across_sessions,
+                   y=correct_mean,
+                   group=new_pa_status,
+                   color=new_pa_status)) +
+        geom_point() +
+        geom_line(size=1) +
+
+        # Add the y_hat learning and intercept
+        geom_line(aes(x=new_pa_img_row_number_across_sessions,
+                      y=y_hat_i_c_ml),
+                  size=1,
+                  # color='blue',
+                  linetype = 'longdash') +
+
+        facet_grid(ptp_trunk~condition) +
+        ggtitle(paste('Mouse euclidean distance; Border dist 3_4',sep='')) +
+        xlab('Image repetition') +
+        ylab('Mouse euclidean distance') +
+        scale_x_continuous(breaks=c(1,2,3,4,5,6,7,8)) +
+        # theme(legend.position = 'top') +
+        geom_vline(xintercept = 4.5, linetype = 'dashed')
 
 
 print(fig_each_ptp_lm)
@@ -512,7 +532,8 @@ print(fig_each_ptp_lm)
 
 sum_stats_each_participant %>%
         filter(new_pa_status == 'both',
-               accuracy_type == 'mouse_error') %>%
+               accuracy_type == 'mouse_error',
+               border_dist == 'all') %>%
         droplevels() %>%
         ggplot(aes(x=condition,
                    y=last_four_mean)) +
@@ -536,7 +557,8 @@ sum_stats_each_participant %>%
 
 sum_stats_each_participant %>%
         filter(new_pa_status == 'both',
-               accuracy_type == 'mouse_error') %>%
+               accuracy_type == 'mouse_error',
+               border_dist == 'all') %>%
         droplevels() %>%
         ggplot(aes(x=condition,
                    y=log_last_four_mean)) +
@@ -558,7 +580,6 @@ sum_stats_each_participant %>%
         theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) +
         ggtitle('Overall, LOG last 4 reps')
 
-
 ```
 
 ### near_pa vs far_pa:
@@ -569,7 +590,8 @@ sum_stats_each_participant %>%
 sum_stats_each_participant %>%
         filter(new_pa_status != 'both',
                !condition %in% c('random_locations','no_schema'),
-               accuracy_type == 'mouse_error') %>%
+               accuracy_type == 'mouse_error',
+               border_dist == 'all') %>%
         droplevels() %>%
         pivot_wider(id_cols = c(ptp_trunk,
                                 condition,
@@ -593,9 +615,40 @@ sum_stats_each_participant %>%
         ylab('Diff') + 
         theme(legend.position = '') +
         theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) +
-        ggtitle('Far minus near-PA, last 4') +
+        ggtitle('All border distances; Far minus near-PA, last 4') +
         geom_hline(yintercept = 0, linetype = 'dashed')
 
+# Last 4
+sum_stats_each_participant %>%
+        filter(new_pa_status != 'both',
+               !condition %in% c('random_locations','no_schema'),
+               accuracy_type == 'mouse_error',
+               border_dist == '3_4') %>%
+        droplevels() %>%
+        pivot_wider(id_cols = c(ptp_trunk,
+                                condition,
+                                accuracy_type),
+                    names_from = new_pa_status,
+                    values_from = last_four_mean) %>% 
+        mutate(neighbor_diff = far_pa - near_pa) %>%
+        ggplot(aes(x=condition,y=neighbor_diff)) +
+        geom_violin() +
+        # geom_jitter(width = 0.1, alpha = 0.2) +
+        geom_dotplot(binaxis='y', stackdir='center',
+                     stackratio=1, dotsize=1, fill="black",
+                     alpha=0.3) +        
+        geom_line(aes(group=ptp_trunk,
+                      color=ptp_trunk)) +
+        stat_summary(fun=mean, geom="point", shape=20, size=5, 
+                     color="red", fill="red") +   
+        stat_summary(fun.data = mean_cl_normal,
+                     geom = "errorbar",size=1,width=0.1,color='red') +        
+        facet_wrap(~accuracy_type, nrow = 1) +
+        ylab('Diff') + 
+        theme(legend.position = '') +
+        theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) +
+        ggtitle('Border dist 3_4; Far minus near-PA, last 4') +
+        geom_hline(yintercept = 0, linetype = 'dashed')
 ```
 
 
@@ -609,7 +662,33 @@ sum_stats_each_participant %>%
 sum_stats_each_participant %>%
         filter(new_pa_status != 'both',
                accuracy_type %in% c('mouse_error'),
-               !condition %in% c('random_locations','no_schema')) %>%
+               !condition %in% c('random_locations','no_schema'),
+               border_dist == 'all') %>%
+        droplevels() %>%
+        ggplot(aes(x=new_pa_status,
+                   y=c_ml,
+                   fill=new_pa_status)) +
+        geom_violin(alpha=0.5) +
+        geom_boxplot(width=0.2,
+                     alpha=0.2) +
+        geom_point(alpha=0.2) +
+        geom_line(aes(group=ptp_trunk),
+                  alpha=0.2) +
+        stat_summary(fun=mean, 
+                     geom="point", 
+                     shape=20, 
+                     size=5, 
+                     color="black",
+                     fill="black") +         
+        facet_grid(accuracy_type~condition) +
+        theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) +
+        ylab('Learning Rate C')
+
+sum_stats_each_participant %>%
+        filter(new_pa_status != 'both',
+               accuracy_type %in% c('mouse_error'),
+               !condition %in% c('random_locations','no_schema'),
+               border_dist == '3_4') %>%
         droplevels() %>%
         ggplot(aes(x=new_pa_status,
                    y=c_ml,
@@ -667,13 +746,14 @@ Plot the difference values:
 sum_stats_each_participant %>%
         filter(new_pa_status != 'both',
                !condition %in% c('random_locations','no_schema'),
-               accuracy_type %in% c('mouse_error')) %>%
+               accuracy_type %in% c('mouse_error'),
+               border_dist == 'all') %>%
         droplevels() %>%
         pivot_wider(id_cols = c(ptp_trunk,
                                 condition,
                                 accuracy_type),
                     names_from = new_pa_status,
-                    values_from = c) %>% 
+                    values_from = c_ml) %>% 
         mutate(far_pa_diff = far_pa - near_pa) %>% 
         ggplot(aes(x=condition,y=far_pa_diff)) +
         geom_violin() +
@@ -693,6 +773,38 @@ sum_stats_each_participant %>%
         theme(legend.position = '') +
         theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) +
         ggtitle('Far minus near-PA, learning rate') +
+        geom_hline(yintercept = 0, linetype = 'dashed')
+
+sum_stats_each_participant %>%
+        filter(new_pa_status != 'both',
+               !condition %in% c('random_locations','no_schema'),
+               accuracy_type %in% c('mouse_error'),
+               border_dist == '3_4') %>%
+        droplevels() %>%
+        pivot_wider(id_cols = c(ptp_trunk,
+                                condition,
+                                accuracy_type),
+                    names_from = new_pa_status,
+                    values_from = c_ml) %>% 
+        mutate(far_pa_diff = far_pa - near_pa) %>% 
+        ggplot(aes(x=condition,y=far_pa_diff)) +
+        geom_violin() +
+        # geom_jitter(width = 0.1, alpha = 0.2) +
+        # geom_dotplot(binaxis='y', stackdir='center',
+        #              stackratio=1, dotsize=0.3, fill="black",
+        #              alpha=0.3) +       
+        geom_point(alpha=0.3) +
+        geom_line(aes(group=ptp_trunk,
+                      color=ptp_trunk)) +
+        stat_summary(fun=mean, geom="point", shape=20, size=5,
+                     color="purple", fill="purple") +
+        stat_summary(fun.data = mean_cl_normal,
+                     geom = "errorbar",size=1,width=0.1,color='purple') +
+        facet_wrap(~accuracy_type, nrow = 1) +
+        ylab('Diff') + 
+        theme(legend.position = '') +
+        theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) +
+        ggtitle('Borde dist 3_4; Far minus near-PA, learning rate') +
         geom_hline(yintercept = 0, linetype = 'dashed')
 
 
