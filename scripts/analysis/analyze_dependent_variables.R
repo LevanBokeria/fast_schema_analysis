@@ -378,6 +378,7 @@ sum_stats_each_participant <- merge(last_two_reps_stats,
                                     last_four_reps_stats,
                                     by = c('ptp_trunk',
                                            'condition',
+                                           'border_dist',
                                            'new_pa_status',
                                            'accuracy_type'))
 
@@ -399,6 +400,7 @@ sum_stats_each_participant <- merge(sum_stats_each_participant,
                                     learning_and_intercept_each_participant,
                                     by = c('ptp_trunk',
                                            'condition',
+                                           'border_dist',
                                            'new_pa_status',
                                            'accuracy_type'),
                                     all = TRUE)
@@ -411,9 +413,10 @@ sum_stats_each_participant <- merge(sum_stats_each_participant,
                                     ml_learning_rate,
                                     by = c('ptp_trunk',
                                            'condition',
+                                           'border_dist',
                                            'new_pa_status',
                                            'accuracy_type'),
-                                    all.x = T)
+                                    all.x = T) 
 
 sum_stats_each_participant <- sum_stats_each_participant %>%
         rename(sse = sse.x,
@@ -431,6 +434,7 @@ learning_and_intercept_each_participants_y_hat_ml <-
         ml_learning_rate %>%
         group_by(ptp_trunk,
                  condition,
+                 border_dist,
                  new_pa_status,
                  accuracy_type) %>% 
         mutate(y_hat_i_c_ml = list(fit_learning_and_intercept(c(intercept,learning_rate),
@@ -444,6 +448,7 @@ learning_and_intercept_each_participants_y_hat_ml <-
                  new_pa_img_row_number_across_sessions)) %>% 
         select(c(ptp_trunk,
                  condition,
+                 border_dist,
                  new_pa_status,
                  accuracy_type,
                  y_hat_i_c_ml,
@@ -454,6 +459,7 @@ mean_by_rep_all_types_long <- merge(mean_by_rep_all_types_long,
                                     learning_and_intercept_each_participants_y_hat_ml,
                                     by = c('ptp_trunk',
                                            'condition',
+                                           'border_dist',
                                            'new_pa_status',
                                            'accuracy_type',
                                            'new_pa_img_row_number_across_sessions'),
