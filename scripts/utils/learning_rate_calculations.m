@@ -89,8 +89,11 @@ for iPtp = 1:n_ptp
                     %                 y = str2double(y);
                     
                     % Now fit the data
-                    [out_params,fval] = est_learning_rate(y',params,plotFMSEstimation,curr_acc);
-                    
+                    if strcmp(curr_acc,'mouse_error')
+                        [out_params,fval] = est_learning_rate(y',[300,0.5,10],plotFMSEstimation,curr_acc);
+                    else
+                        [out_params,fval] = est_learning_rate(y',params,plotFMSEstimation,curr_acc);
+                    end
                     % Save in a table
                     tbl.ptp_trunk{ctr} = curr_ptp;
                     tbl.condition{ctr} = curr_cond;
@@ -100,6 +103,10 @@ for iPtp = 1:n_ptp
                     tbl.sse(ctr) = fval;
                     tbl.intercept(ctr) = out_params(1);
                     tbl.learning_rate(ctr) = out_params(2);
+                    
+                    if strcmp(curr_acc,'mouse_error')
+                        tbl.asymptote(ctr) = out_params(3);
+                    end
                     
                     ctr = ctr + 1;
                 end %iNeigh

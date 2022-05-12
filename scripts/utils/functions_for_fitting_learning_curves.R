@@ -4,7 +4,7 @@ fit_learning_and_intercept <- function(p,t,y,ret,measure,print_output){
 
         
         if (measure[1] == 'mouse_error'){
-                y_hat <- p[1] * (exp(-p[2]*(t-1)))
+                y_hat <- (p[1]-p[3]) * (exp(-p[2]*(t-1))) + p[3]
                 
         } else {
                 y_hat <- p[1] + (1 - exp(-p[2]*(t-1)))*(1-p[1])      

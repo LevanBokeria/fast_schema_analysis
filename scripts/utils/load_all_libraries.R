@@ -7,7 +7,6 @@
 
 pacman::p_load(pacman,
                rio,
-               tidyverse,
                rstatix,
                DT,
                kableExtra,
@@ -22,4 +21,6 @@ pacman::p_load(pacman,
                psycho,
                data.table,
                pdist,
-               moments)
+               moments,
+               LambertW,
+               tidyverse)

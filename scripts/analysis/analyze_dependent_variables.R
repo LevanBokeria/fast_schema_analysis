@@ -31,7 +31,7 @@ if (!exists('i_lower')){
 # If qc_filter variable doesnt exist, create it
 if (!exists('qc_filter')){
         
-        qc_filter <- F
+        qc_filter <- T
         
 }
 
@@ -242,7 +242,6 @@ mean_by_rep_all_types_long <-
 # Rough measures for learning #########################################
 
 ## For both/near/far-PA -----------------------------------------------
-
 sum_stats_each_participant <-
         mean_by_rep_all_types_long %>%
         filter(new_pa_img_row_number_across_sessions %in% c(5,6,7,8)) %>%
@@ -255,19 +254,26 @@ sum_stats_each_participant <-
                   last_four_sd   = sd(correct_mean, na.rm = T)) %>%
         ungroup()
 
-# Log transform the last 2 and last 4 measures
+# Log transform session 2 average
 sum_stats_each_participant <- sum_stats_each_participant %>%
         mutate(log_last_four_mean = log(last_four_mean))
 
 # If any of them are Inf values, substitute with the lowest value.
-sum_stats_each_participant <- sum_stats_each_participant %>%
-        mutate(log_last_four_mean = case_when(
-                       is.infinite(log_last_four_mean) ~ min(log_last_four_mean*is.finite(log_last_four_mean),na.rm = T),
-                       TRUE ~ log_last_four_mean))
+print('accuracy data log transformed but could be inf!!')
+# sum_stats_each_participant <- sum_stats_each_participant %>%
+#         mutate(log_last_four_mean = case_when(
+#                        is.infinite(log_last_four_mean) ~ min(log_last_four_mean*is.finite(log_last_four_mean),na.rm = T),
+#                        TRUE ~ log_last_four_mean))
 
 # Now, matlab computed learning rates ############################
 
 ml_learning_rate <- import('./results/pilots/preprocessed_data/learning_rate_fits_matlab.csv')
+
+
+if (qc_filter){
+        ml_learning_rate <- ml_learning_rate %>%
+                filter(ptp_trunk != '609478f...')
+}
 
 sum_stats_each_participant <- merge(sum_stats_each_participant,
                                     ml_learning_rate,
@@ -281,12 +287,43 @@ sum_stats_each_participant <- merge(sum_stats_each_participant,
 sum_stats_each_participant <- sum_stats_each_participant %>%
         rename(sse_ml = sse,
                i_ml = intercept,
-               c_ml = learning_rate)
+               c_ml = learning_rate,
+               asymptote_ml = asymptote)
 
-## Log transform matlab learning rates --------------------------------
+## Log transform matlab learning rates 
 # sum_stats_each_participant <- sum_stats_each_participant %>%
 #         mutate(c_ml_log = log(c_ml))
 
+## Remove learning rates 1.5IQR away ---------------------------------
+
+## Gaussianize matlab learning rates --------------------------------
+sum_stats_each_participant <- sum_stats_each_participant %>%
+        filter(border_dist %in% c('all','3_4')) %>%
+        droplevels() %>%
+        group_by(condition,
+                 border_dist,
+                 new_pa_status,
+                 accuracy_type,
+                 .drop = F) %>%
+        mutate(c_ml_gauss = Gaussianize(c_ml, type = 's')) %>%
+        ungroup()
+
+# sum_stats_each_participant %>%
+#         filter(accuracy_type == 'mouse_error',
+#                border_dist %in% c('all','3_4'))
+#         
+# sum_stats_each_participant %>%
+#         filter(accuracy_type == 'mouse_error',
+#                border_dist %in% c('all','3_4')) %>%
+#         group_by(condition,
+#                  border_dist,
+#                  new_pa_status,
+#                  accuracy_type) %>%
+#         mutate(c_ml_gauss = Gaussianize(c_ml, type = 's')) %>%
+#         ungroup() %>%
+#         ggplot(aes(x=c_ml_gauss)) +
+#         geom_histogram() +
+#         facet_grid(border_dist+condition~new_pa_status)
 
 ## Calculate predicted y values and merge with the long form data ------------
 learning_and_intercept_each_participants_y_hat_ml <-
@@ -296,7 +333,7 @@ learning_and_intercept_each_participants_y_hat_ml <-
                  border_dist,
                  new_pa_status,
                  accuracy_type) %>% 
-        mutate(y_hat_i_c_ml = list(fit_learning_and_intercept(c(intercept,learning_rate),
+        mutate(y_hat_i_c_ml = list(fit_learning_and_intercept(c(intercept,learning_rate,asymptote),
                                                               seq(1:8),
                                                               seq(1:8),
                                                               'fit',

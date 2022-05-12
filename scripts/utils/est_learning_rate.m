@@ -16,19 +16,26 @@ function [out_params,fval] = est_learning_rate(ptp_data,params,plotEstimation,ac
         trials = 1:length(ptp_data);
         
         % For optimize both rate and offset
-        if strcmp(accuracy_type,'mouse_dist_euclid')
-            
-            y_hat = x(1)*(exp(-x(2) * (trials - 1)));
+        if strcmp(accuracy_type,'mouse_error')
+            y_hat = (x(1) - x(3)) * (exp(-x(2) * (trials - 1))) + x(3);
         else
             y_hat = x(1) + (1 - exp(-x(2) * (trials - 1))) * (1-x(1))';
         end
         
         % If the intercept is below 0, have a terrible sse
-        if x(1) < 0 
+        if x(1) < 0 || x(1) > sqrt(2*500^2)
             sse = Inf;
         else
             sse = nansum(abs(ptp_data - y_hat).^2);
         end
+        
+        % If the asymptote is less than 0, infinite error
+        if strcmp(accuracy_type,'mouse_error')
+            if x(3) < 0
+                sse = Inf;
+            end
+        end
+        
     end
 
 end
