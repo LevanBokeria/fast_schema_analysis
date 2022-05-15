@@ -83,15 +83,17 @@ fig_each_ptp <- mean_by_rep_all_types_long %>%
         ggplot(aes(x=new_pa_img_row_number_across_sessions,
                    y=correct_mean_across_ptp,
                    color=condition)) +
-        geom_point() +
-        geom_line() +
+        geom_point(size=2) +
+        geom_line(size=0.7) +
 
-        ggtitle(paste('Mouse euclidean distance; Across participants',sep='')) +
-        xlab('Image repetition') +
-        ylab('Mouse euclidean distance ') +
+        # ggtitle(paste('Mouse euclidean distance; Across participants',sep='')) +
+        xlab('') +
+        ylab('') +
         scale_x_continuous(breaks=c(1,2,3,4,5,6,7,8)) +
         # theme(legend.position = 'top') +
-        geom_vline(xintercept = 4.5, linetype = 'dashed') 
+        geom_vline(xintercept = 4.5, linetype = 'dashed') +
+        theme_classic() +
+        theme(axis.text = element_text(size=15)) 
 
 
 print(fig_each_ptp)
@@ -103,7 +105,7 @@ print(fig_each_ptp)
 
 ## Session 2 average
 
-```{r all-pa-ses-2}
+```{r all-pa-ses-2, fig.height=3, fig.width=7}
 
 sum_stats_each_participant %>%
         filter(new_pa_status == 'both',
@@ -112,28 +114,31 @@ sum_stats_each_participant %>%
         droplevels() %>%
         ggplot(aes(x=condition,
                    y=last_four_mean)) +
-        geom_violin() +
+        geom_violin(aes(fill=condition),
+                    alpha = 0.2) +
         geom_dotplot(binaxis = 'y',
                      stackdir = 'center',
                      stackratio = 1,
                      dotsize = 1,
                      fill = 'black',
                      alpha = 0.2) +
-        geom_line(aes(group=ptp_trunk,
-                      color=ptp_trunk)) +
-        facet_wrap(~accuracy_type, nrow = 1) +
+        geom_line(aes(group=ptp_trunk),
+                  alpha=0.2) +
+        # facet_wrap(~accuracy_type, nrow = 1) +
         stat_summary(fun=mean, geom="point", shape=20, size=5, 
-                     color="red", fill="red") + 
+                     color="black", fill="black") + 
         stat_summary(fun.data = mean_cl_normal,
-                     geom = "errorbar",size=1,width=0.1,color='red') +
+                     geom = "errorbar",size=1,width=0.1,color='black') +
         theme(legend.position = '') +
         theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) +
-        ggtitle('Overall, last 4 reps')
+        theme_classic() +
+        theme(legend.position = '') +
+        ylab('Session 2 average error') 
 
 
 ```
 
-```{r all-pa-learning-rate}
+```{r all-pa-learning-rate, fig.height=3, fig.width=7}
 
 sum_stats_each_participant %>%
         filter(new_pa_status == 'both',
@@ -142,23 +147,26 @@ sum_stats_each_participant %>%
         droplevels() %>%
         ggplot(aes(x=condition,
                    y=c_ml_gauss)) +
-        geom_violin() +
+        geom_violin(aes(fill=condition),
+                    alpha = 0.2) +
         geom_dotplot(binaxis = 'y',
                      stackdir = 'center',
                      stackratio = 1,
                      dotsize = 1,
                      fill = 'black',
                      alpha = 0.2) +
-        geom_line(aes(group=ptp_trunk,
-                      color=ptp_trunk)) +
-        facet_wrap(~accuracy_type, nrow = 1) +
+        geom_line(aes(group=ptp_trunk),
+                  alpha=0.2) +
+        # facet_wrap(~accuracy_type, nrow = 1) +
         stat_summary(fun=mean, geom="point", shape=20, size=5, 
-                     color="red", fill="red") + 
+                     color="black", fill="black") + 
         stat_summary(fun.data = mean_cl_normal,
-                     geom = "errorbar",size=1,width=0.1,color='red') +
+                     geom = "errorbar",size=1,width=0.1,color='black') +
         theme(legend.position = '') +
         theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) +
-        ggtitle('Overall, learning rates')
+        theme_classic() +
+        theme(legend.position = '') +
+        ylab('Learning rates (Gaussianized)') 
 
 
 ```
@@ -240,6 +248,126 @@ sum_stats_each_participant %>%
         geom_hline(yintercept = 0, linetype = 'dashed')
 
 ```
+
+## Ses 2 average:
+
+```{r combine-data-frames}
+a <- sum_stats_each_participant %>%
+        filter(new_pa_status != 'both',
+               condition == 'schema_c',
+               accuracy_type == 'mouse_error',
+               border_dist == '3_4') %>%
+        droplevels() %>%
+        pivot_wider(id_cols = c(ptp_trunk,
+                                condition,
+                                accuracy_type),
+                    names_from = new_pa_status,
+                    values_from = last_four_mean) %>% 
+        mutate(far_near_diff = far_pa - near_pa )
+
+b <- sum_stats_each_participant %>%
+        filter(new_pa_status == 'near_pa',
+               condition %in% c('schema_c','landmark_schema'),
+               accuracy_type == 'mouse_error',
+               border_dist == '3_4') %>%
+        droplevels() %>% 
+        pivot_wider(id_cols = c(ptp_trunk,
+                                accuracy_type,
+                                new_pa_status),
+                    names_from = condition,
+                    values_from = last_four_mean) %>% 
+        mutate(schema_l_vs_schema_c = landmark_schema - schema_c)
+
+c <- merge(a,b, by = c('ptp_trunk'))
+
+c <- c %>%
+        pivot_longer(cols = c('far_near_diff','schema_l_vs_schema_c'),
+                     names_to = 'Diff_type')
+
+```
+
+```{r plot-differences, fig.width=6, fig.height=3}
+
+c %>%
+        ggplot(aes(x=Diff_type,y=value)) +
+        geom_violin(fill = 'gray',
+                    alpha = 0.3) +
+        geom_dotplot(binaxis='y', stackdir='center',
+                     stackratio=1, dotsize=1, fill="black",
+                     alpha=0.3) +
+         stat_summary(fun=mean, geom="point", shape=20, size=5,
+                     color="red", fill="red") +
+        stat_summary(fun.data = mean_cl_normal,
+                     geom = "errorbar",size=1,width=0.1,color='red') +
+        geom_hline(yintercept = 0, linetype = 'dashed') +
+        theme_classic() +
+        theme(axis.text = element_text(size=15)) +
+        ylab('') +
+        xlab('')
+
+
+```
+
+## Learning rates
+
+```{r combine-data-frames-learning-rates}
+a <- sum_stats_each_participant %>%
+        filter(new_pa_status != 'both',
+               condition == 'schema_c',
+               accuracy_type == 'mouse_error',
+               border_dist == '3_4') %>%
+        droplevels() %>%
+        pivot_wider(id_cols = c(ptp_trunk,
+                                condition,
+                                accuracy_type),
+                    names_from = new_pa_status,
+                    values_from = c_ml_gauss) %>% 
+        mutate(far_near_diff = far_pa - near_pa )
+
+b <- sum_stats_each_participant %>%
+        filter(new_pa_status == 'near_pa',
+               condition %in% c('schema_c','landmark_schema'),
+               accuracy_type == 'mouse_error',
+               border_dist == '3_4') %>%
+        droplevels() %>% 
+        pivot_wider(id_cols = c(ptp_trunk,
+                                accuracy_type,
+                                new_pa_status),
+                    names_from = condition,
+                    values_from = c_ml_gauss) %>% 
+        mutate(schema_l_vs_schema_c = landmark_schema - schema_c)
+
+c <- merge(a,b, by = c('ptp_trunk'))
+
+c <- c %>%
+        pivot_longer(cols = c('far_near_diff','schema_l_vs_schema_c'),
+                     names_to = 'Diff_type')
+
+```
+
+```{r plot-differences, fig.width=6, fig.height=3}
+
+c %>%
+        ggplot(aes(x=Diff_type,y=value)) +
+        geom_violin(fill = 'gray',
+                    alpha = 0.3) +
+        geom_dotplot(binaxis='y', stackdir='center',
+                     stackratio=1, dotsize=1, fill="black",
+                     alpha=0.3) +
+         stat_summary(fun=mean, geom="point", shape=20, size=5,
+                     color="red", fill="red") +
+        stat_summary(fun.data = mean_cl_normal,
+                     geom = "errorbar",size=1,width=0.1,color='red') +
+        geom_hline(yintercept = 0, linetype = 'dashed') +
+        theme_classic() +
+        theme(axis.text = element_text(size=15)) +
+        ylab('') +
+        xlab('')
+
+
+```
+
+
 
 
 ```{r landmark-raw-learning-curves-and-fits, fig.width=10, fig.height=12}
