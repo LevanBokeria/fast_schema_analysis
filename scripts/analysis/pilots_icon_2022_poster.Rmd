@@ -183,8 +183,8 @@ sum_stats_each_participant %>%
                                 accuracy_type),
                     names_from = new_pa_status,
                     values_from = last_four_mean) %>% 
-        mutate(near_far_diff = near_pa - far_pa ) %>%
-        ggplot(aes(x=condition,y=near_far_diff)) +
+        mutate(far_near_diff = far_pa - near_pa ) %>%
+        ggplot(aes(x=condition,y=far_near_diff)) +
         geom_violin() +
         # geom_jitter(width = 0.1, alpha = 0.2) +
         geom_dotplot(binaxis='y', stackdir='center',
