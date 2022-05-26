@@ -93,7 +93,8 @@ fig_each_ptp <- mean_by_rep_all_types_long %>%
         # theme(legend.position = 'top') +
         geom_vline(xintercept = 4.5, linetype = 'dashed') +
         theme_classic() +
-        theme(axis.text = element_text(size=15)) 
+        theme(axis.text = element_text(size=15)) +
+        scale_color_discrete(name = "Condition", labels = c("Schema-C", "Schema-IC", "Schema-L",'Random','No schema'))
 
 
 print(fig_each_ptp)
@@ -133,7 +134,9 @@ sum_stats_each_participant %>%
         theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) +
         theme_classic() +
         theme(legend.position = '') +
-        ylab('Session 2 average error') 
+        ylab('Session 2 average error') +
+        xlab('') +
+        scale_x_discrete(labels = element_blank())
 
 
 ```
@@ -166,7 +169,9 @@ sum_stats_each_participant %>%
         theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) +
         theme_classic() +
         theme(legend.position = '') +
-        ylab('Learning rates (Gaussianized)') 
+        ylab('Learning rates (Gaussianized)')  +
+        xlab('') +
+        scale_x_discrete(labels = element_blank())
 
 
 ```
@@ -296,14 +301,15 @@ c %>%
                      stackratio=1, dotsize=1, fill="black",
                      alpha=0.3) +
          stat_summary(fun=mean, geom="point", shape=20, size=5,
-                     color="red", fill="red") +
+                     color="black", fill="black") +
         stat_summary(fun.data = mean_cl_normal,
-                     geom = "errorbar",size=1,width=0.1,color='red') +
+                     geom = "errorbar",size=1,width=0.1,color='black') +
         geom_hline(yintercept = 0, linetype = 'dashed') +
         theme_classic() +
         theme(axis.text = element_text(size=15)) +
         ylab('') +
-        xlab('')
+        xlab('') +
+        scale_x_discrete(labels = element_blank())
 
 
 ```
@@ -355,14 +361,15 @@ c %>%
                      stackratio=1, dotsize=1, fill="black",
                      alpha=0.3) +
          stat_summary(fun=mean, geom="point", shape=20, size=5,
-                     color="red", fill="red") +
+                     color="black", fill="black") +
         stat_summary(fun.data = mean_cl_normal,
-                     geom = "errorbar",size=1,width=0.1,color='red') +
+                     geom = "errorbar",size=1,width=0.1,color='black') +
         geom_hline(yintercept = 0, linetype = 'dashed') +
         theme_classic() +
         theme(axis.text = element_text(size=15)) +
         ylab('') +
-        xlab('')
+        xlab('') +
+        scale_x_discrete(labels = element_blank())
 
 
 ```
