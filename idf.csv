@@ -1,9 +1,0 @@
-ptp_trunk,condition,neighbor_status,accuracy_type,new_pa_img_row_number_across_sessions,correct_mean,correct_sd,n,ci_95,y_hat_i_c
-6047ae5...,schema_c,both,correct_one_square_away,1,0.3333333333333333,0.5163977794943222,6,0.41320428092866823,0.5070798841575612
-6047ae5...,schema_c,both,correct_one_square_away,2,1,0,6,0,0.6237224671844318
-6047ae5...,schema_c,both,correct_one_square_away,3,0.6666666666666666,0.5163977794943222,6,0.41320428092866823,0.7127632304885921
-6047ae5...,schema_c,both,correct_one_square_away,4,0.6666666666666666,0.5163977794943222,6,0.41320428092866823,0.7807337548378439
-6047ae5...,schema_c,both,correct_one_square_away,5,0.6666666666666666,0.5163977794943222,6,0.41320428092866823,0.8326200146684168
-6047ae5...,schema_c,both,correct_one_square_away,6,0.8333333333333334,0.408248290463863,6,0.32666666666666666,0.8722281239919899
-6047ae5...,schema_c,both,correct_one_square_away,7,1,0,6,0,0.9024635336998932
-6047ae5...,schema_c,both,correct_one_square_away,8,1,0,6,0,0.9255441607688732
