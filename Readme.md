@@ -1,4 +1,4 @@
-This repository contains documents and analysis scripts for the **pilot runs ** of the project examining the local vs gloval effects of schema components on new learning. 
+This repository contains documents and analysis scripts for the **pilot runs** of the project examining the local vs gloval effects of schema components on new learning. 
 
 # Folders:
 
